@@ -30,10 +30,10 @@
     /* Subtitle Display Overlay Box */
     #subtitle-overlay {
       position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%);
-      z-index: 2147483646; color: #fff; background: rgba(0,0,0,0.75);
-      padding: 6px 12px; font-size: clamp(12px, 2.5vw, 18px); font-weight: bold;
+      z-index: 2147483646; color: #fff; background: rgba(0,0,0,0.85);
+      padding: 8px 16px; font-size: clamp(13px, 2.8vw, 19px); font-weight: bold;
       text-align: center; max-width: 85%; border-radius: 4px; display: none;
-      pointer-events: none; text-shadow: 1px 1px 2px #000;
+      pointer-events: none; text-shadow: 1px 1px 3px #000; line-height: 1.4;
     }
     .video-container.cc-active #subtitle-overlay { display: block; }
     
@@ -148,7 +148,7 @@
   <!-- Transient Fullscreen Navigation, CC & Exit Box -->
   <div class="fs-nav">
       <button class="fs-btn" onclick="nav(-1)">PREV</button>
-      <button class="fs-btn" id="fs-cc-toggle-btn" onclick="toggleCC()">CC: OFF</button>
+      <button class="fs-btn" id="fs-cc-toggle-btn" onclick="toggleCC()">CC: ON</button>
       <button class="fs-btn" onclick="toggleFullScreen()">EXIT</button>
       <button class="fs-btn" onclick="nav(1)">NEXT</button>
   </div>
@@ -160,7 +160,7 @@
 
 <div class="controls-panel">
   <button id="fs-toggle-btn" class="ctrl-action-btn" onclick="toggleFullScreen()">FULLSCREEN</button>
-  <button id="main-cc-toggle-btn" class="ctrl-action-btn" onclick="toggleCC()">CC: OFF</button>
+  <button id="main-cc-toggle-btn" class="ctrl-action-btn" onclick="toggleCC()">CC: ON</button>
 </div>
 
 <div class="nav-box">
@@ -190,16 +190,15 @@
   const mainCcBtn = document.getElementById('main-cc-toggle-btn');
   const fsCcBtn = document.getElementById('fs-cc-toggle-btn');
   
-  // Fully linked subtitle datasets mapped directly to specific movie IDs
+  // Linked Subtitles Database for Nasty Old People mapped directly to its Dailymotion Video ID
   const subtitlesData = {
-    // Nasty Old People (Fully linked with English translated script cues from your file)
     "k2onvpqu5aRLmUHWMR4": [
       { start: 11, end: 20, text: "Danish text by Michael Wahlstrøm" },
       { start: 89, end: 91, text: "- Isn't it beautiful?\n- What the hell are you doing at home?" },
       { start: 96, end: 101, text: "Have you ever seen anything so luxurious?" },
       { start: 111, end: 114, text: "My name is Mette." },
       { start: 116, end: 119, text: "I am nineteen." },
-      { start: 126, end: 131, text: "When I was thirteen, I became a Nazi[span_0](start_span)[span_0](end_span)." },
+      { start: 126, end: 131, text: "When I was thirteen, I became a Nazi." },
       { start: 139, end: 143, text: "Everyone loves me." },
       { start: 144, end: 150, text: "Because they can come from both sides, we'll position the two of us here - and here." },
       { start: 152, end: 155, text: "So it goes without saying they will attack from behind." },
@@ -212,17 +211,11 @@
       { start: 190, end: 192, text: "But most of all..." },
       { start: 192, end: 196, text: "...Colleagues in home care." },
       { start: 198, end: 202, text: "I happily take care of old people that no one else bothers to help." }
-    ],
-    // Placeholders for other titles so they possess universal CC capability support when scripts are provided
-    "k4ObpDYw3BipbbHWEW2": [], // Strive
-    "k1OjGBaUwtLuvrHWG9U": [], // Ink
-    "k2btb1TuZW82y7HWJ4u": [], // THE REDWOOD MASSACRE
-    "k3oEnpPscWIfF8HWOdw": [], // Half Empty
-    "k7iwKjmDYVxYRSHWR4q": [], // Artifacts Of Idealism
-    "k5q4oSCRSb8wg7HWT2S": []  // Tiger
+    ]
   };
 
-  let ccEnabled = true; // Starts with CC turned on by default for the lineup
+  let ccEnabled = true; // Starts ON by default
+  let playbackSeconds = 0;
   let subtitleTimer = null;
 
   const stationData = [
@@ -269,10 +262,19 @@
   function toggleCC() {
     ccEnabled = !ccEnabled;
     applyCCUIState();
+    if (ccEnabled) {
+      updateSubtitles(playbackSeconds);
+    } else {
+      subtitleOverlay.innerText = "";
+    }
   }
 
   function updateSubtitles(currentTime) {
-    if (!ccEnabled) return;
+    if (!ccEnabled) {
+      subtitleOverlay.innerText = "";
+      return;
+    }
+    
     const station = stationData[currentIndex];
     const cues = subtitlesData[station.id];
     
@@ -294,6 +296,8 @@
     const station = stationData[index];
     
     let startSeconds = customOffset !== null ? customOffset : getVirtualStationTime(index);
+    playbackSeconds = startSeconds; // Keep active counter synced
+    
     let cleanUrl = `${station.embed}&start=${startSeconds}`;
     iframe.src = cleanUrl;
     
@@ -310,9 +314,8 @@
     titleOverlay.style.opacity = 1;
     setTimeout(() => { titleOverlay.style.opacity = 0; }, 2000);
 
-    // Sync subtitle tracking clock to current stream position
+    // Sync subtitle tracking clock
     clearInterval(subtitleTimer);
-    let playbackSeconds = startSeconds;
     updateSubtitles(playbackSeconds);
     
     subtitleTimer = setInterval(() => {
@@ -409,7 +412,7 @@
     initialTime = getVirtualStationTime(initialIndex);
   }
 
-  // Initialize CC state visually on boot
+  // Initialize CC state visually on boot and run stream
   applyCCUIState();
   playStation(initialIndex, initialTime);
 </script>
