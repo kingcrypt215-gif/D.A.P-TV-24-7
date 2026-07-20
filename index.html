@@ -89,7 +89,7 @@
             backdrop-filter: blur(4px);
         }
 
-        /* Mandatory User Interaction Audio Gate to bypass browser sound blocking blocks */
+        /* Audio Gate Overlay to bypass browser sound blocking rules */
         #audio-gate {
             position: absolute;
             top: 0;
@@ -151,7 +151,7 @@
             height: 100%;
             z-index: 10;
             background: transparent;
-            pointer-events: none; /* Allows clicks to pass through except where needed */
+            pointer-events: none;
         }
 
         /* Embedded Player Frame Wrapper */
@@ -161,12 +161,6 @@
             left: 0;
             width: 100%;
             height: 100%;
-        }
-
-        #player-slot iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
         }
 
         /* Custom Network Control & Now Playing Bar */
@@ -292,7 +286,7 @@
     <div id="dap-container">
         <div class="dap-watermark-tag">D.A.P TV 24/7</div>
         
-        <!-- User Interaction Gate to force-enable audio legally past browser restrictions -->
+        <!-- User Interaction Gate to bypass browser sound blocks -->
         <div id="audio-gate" onclick="unlockAudio()">
             <h2>D.A.P TV 24/7 LIVE FEED</h2>
             <p>Click or tap anywhere to launch broadcast with sound</p>
@@ -301,7 +295,7 @@
 
         <div class="click-shield"></div>
         <div id="player-slot">
-            <!-- Programmatic Player Injection Site -->
+            <!-- Dailymotion JS SDK Target Slot -->
         </div>
 
         <!-- Transient Fullscreen Control Deck Overlay -->
@@ -333,7 +327,7 @@
         </div>
     </div>
 
-    <!-- Dailymotion SDK for Complete Programmatic Playback Control -->
+    <!-- Dailymotion SDK -->
     <script src="https://controldev.dailymotion.com/player.js"></script>
 
     <script>
@@ -376,26 +370,36 @@
 
             playerSlot.innerHTML = '';
 
-            const iframe = document.createElement('iframe');
-            // controls=0 completely eliminates all Dailymotion channel buttons and popups
-            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=1&controls=0&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
-            iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; web-share');
-            iframe.setAttribute('allowfullscreen', 'true');
-            iframe.setAttribute('webkitallowfullscreen', 'true');
-            iframe.setAttribute('mozallowfullscreen', 'true');
-            iframe.setAttribute('msallowfullscreen', 'true');
-            playerSlot.appendChild(iframe);
-
-            playerInstance = DM.player(iframe, {
-                video: currentVideo.id
+            // Using official Dailymotion JS SDK player constructor with strict parameter locks
+            playerInstance = DM.player(playerSlot, {
+                video: currentVideo.id,
+                width: '100%',
+                height: '100%',
+                params: {
+                    autoplay: true,
+                    mute: true, // Required initial state for browsers
+                    controls: false, // Strips out all native Dailymotion channel elements & queues
+                    'ui-start-screen-info': false,
+                    'ui-logo': false,
+                    'sharing-enable': false,
+                    'queue-enable': false,
+                    api: 1
+                }
             });
 
             playerInstance.addEventListener('ended', function() {
                 playNextVideo();
             });
+
+            // If audio was already unlocked by the viewer, keep subsequent tracks unmuted automatically
+            if (audioUnlocked) {
+                playerInstance.addEventListener('apiready', function() {
+                    playerInstance.setMuted(false);
+                    playerInstance.setVolume(1.0);
+                });
+            }
         }
 
-        // Unlocks sound instantly when the user clicks the broadcast banner
         function unlockAudio() {
             audioUnlocked = true;
             const gate = document.getElementById('audio-gate');
@@ -417,13 +421,6 @@
                 currentIndex = 0;
             }
             renderActiveVideo();
-            
-            if (audioUnlocked && playerInstance) {
-                setTimeout(() => {
-                    playerInstance.setMuted(false);
-                    playerInstance.setVolume(1.0);
-                }, 600);
-            }
         }
 
         function playPreviousVideo() {
@@ -432,13 +429,6 @@
                 currentIndex = shuffledPlaylist.length - 1;
             }
             renderActiveVideo();
-            
-            if (audioUnlocked && playerInstance) {
-                setTimeout(() => {
-                    playerInstance.setMuted(false);
-                    playerInstance.setVolume(1.0);
-                }, 600);
-            }
         }
 
         function toggleFullScreen() {
