@@ -89,67 +89,14 @@
             backdrop-filter: blur(4px);
         }
 
-        /* High-Priority Audio Gate Overlay to bypass browser autoplay sound restrictions */
-        #audio-gate {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.92);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            z-index: 50;
-            cursor: pointer;
-            transition: opacity 0.3s ease;
-        }
-
-        #audio-gate h2 {
-            color: #FFD700;
-            font-size: 22px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-align: center;
-            padding: 0 20px;
-        }
-
-        #audio-gate p {
-            color: #ccc;
-            font-size: 14px;
-            text-align: center;
-            padding: 0 20px;
-        }
-
-        .unlock-btn {
-            background: #FFD700;
-            color: #000;
-            border: none;
-            padding: 12px 28px;
-            font-weight: 800;
-            font-size: 15px;
-            letter-spacing: 1px;
-            border-radius: 4px;
-            cursor: pointer;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
-            margin-top: 5px;
-        }
-
-        .unlock-btn:hover {
-            background: #fff;
-            box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
-        }
-
-        /* Transparent click shield */
+        /* Shield only blocks the top-right area to prevent clicking out to Dailymotion branding, leaving native play/volume usable */
         .click-shield {
             position: absolute;
             top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
+            right: 0;
+            width: 120px;
+            height: 70px;
+            z-index: 15;
             background: transparent;
         }
 
@@ -278,22 +225,6 @@
             box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
         }
 
-        .volume-container {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: #000;
-            border: 1px solid #FFD700;
-            padding: 5px 10px;
-            border-radius: 4px;
-        }
-
-        .volume-container input[type="range"] {
-            width: 70px;
-            accent-color: #FFD700;
-            cursor: pointer;
-        }
-
         @keyframes pulse {
             0% { transform: scale(0.95); opacity: 0.8; }
             50% { transform: scale(1.2); opacity: 1; }
@@ -303,17 +234,9 @@
 </head>
 <body>
 
-    <!-- Main Player Frame Container with Shield, Tag, Audio Gate, and Gold Border -->
+    <!-- Main Player Frame Container with Shield, Tag, and Gold Border -->
     <div id="dap-container">
         <div class="dap-watermark-tag">D.A.P TV 24/7</div>
-        
-        <!-- Mandatory User Interaction Gate to bypass browser sound blocking blocks -->
-        <div id="audio-gate" onclick="unlockAudio()">
-            <h2>D.A.P TV 24/7 LIVE FEED</h2>
-            <p>Click or tap anywhere to initialize broadcast sound & video</p>
-            <button class="unlock-btn">ENTER BROADCAST</button>
-        </div>
-
         <div class="click-shield"></div>
         <div id="player-slot">
             <!-- Programmatic Player Injection Site -->
@@ -326,12 +249,7 @@
             </div>
             <div class="controls-group">
                 <button class="dap-btn" onclick="playPreviousVideo()">Prev</button>
-                <button class="dap-btn" id="fs-play-pause-btn" onclick="togglePlayPause()">⏸ Pause</button>
                 <button class="dap-btn" onclick="playNextVideo()">Next</button>
-                <div class="volume-container">
-                    <button class="dap-btn" id="fs-mute-btn" onclick="toggleMute()" style="border:none; padding:0; background:transparent;">🔊</button>
-                    <input type="range" id="fs-volume-slider" min="0" max="1" step="0.05" value="0.8" oninput="changeVolume(this.value)">
-                </div>
                 <button class="dap-btn" onclick="toggleFullScreen()">Exit Fullscreen</button>
             </div>
         </div>
@@ -348,14 +266,7 @@
         </div>
         <div class="controls-group">
             <button class="dap-btn" onclick="playPreviousVideo()">Prev</button>
-            <button class="dap-btn" id="play-pause-btn" onclick="togglePlayPause()">⏸ Pause</button>
             <button class="dap-btn" onclick="playNextVideo()">Next</button>
-            
-            <div class="volume-container">
-                <button class="dap-btn" id="mute-btn" onclick="toggleMute()" style="border:none; padding:0; background:transparent;">🔊</button>
-                <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.8" oninput="changeVolume(this.value)">
-            </div>
-
             <button class="dap-btn" onclick="toggleFullScreen()">Fullscreen</button>
         </div>
     </div>
@@ -377,10 +288,6 @@
         let shuffledPlaylist = [];
         let currentIndex = 0;
         let playerInstance = null;
-        let isPlaying = true;
-        let isMutedState = true; 
-        let currentVolume = 0.8;
-        let previousVolume = 0.8;
 
         function shuffleArray(array) {
             let shuffled = [...array];
@@ -407,8 +314,8 @@
             playerSlot.innerHTML = '';
 
             const iframe = document.createElement('iframe');
-            // Safe initial muted flag guarantees the iframe loads without triggering browser policy cancellation
-            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=1&controls=0&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
+            // Enabling native controls=1 so viewers have native play and volume control, while queue-enable=0 / sharing-enable=0 blocks external channel switching recommendations
+            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=0&controls=1&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
             iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; web-share');
             iframe.setAttribute('allowfullscreen', 'true');
             iframe.setAttribute('webkitallowfullscreen', 'true');
@@ -423,30 +330,6 @@
             playerInstance.addEventListener('ended', function() {
                 playNextVideo();
             });
-
-            isPlaying = true;
-            updatePlayPauseUI();
-        }
-
-        // Unlocks sound instantly upon user engagement with the overlay gate
-        function unlockAudio() {
-            const gate = document.getElementById('audio-gate');
-            gate.style.opacity = '0';
-            setTimeout(() => {
-                gate.style.display = 'none';
-            }, 300);
-
-            if (playerInstance) {
-                isMutedState = false;
-                playerInstance.setMuted(false);
-                playerInstance.setVolume(currentVolume);
-                
-                const muteBtns = [document.getElementById('mute-btn'), document.getElementById('fs-mute-btn')];
-                const sliders = [document.getElementById('volume-slider'), document.getElementById('fs-volume-slider')];
-                
-                muteBtns.forEach(btn => btn.innerText = "🔊");
-                sliders.forEach(slider => slider.value = currentVolume);
-            }
         }
 
         function playNextVideo() {
@@ -456,13 +339,6 @@
                 currentIndex = 0;
             }
             renderActiveVideo();
-            
-            if (!isMutedState && playerInstance) {
-                setTimeout(() => {
-                    playerInstance.setMuted(false);
-                    playerInstance.setVolume(currentVolume);
-                }, 600);
-            }
         }
 
         function playPreviousVideo() {
@@ -471,71 +347,6 @@
                 currentIndex = shuffledPlaylist.length - 1;
             }
             renderActiveVideo();
-            
-            if (!isMutedState && playerInstance) {
-                setTimeout(() => {
-                    playerInstance.setMuted(false);
-                    playerInstance.setVolume(currentVolume);
-                }, 600);
-            }
-        }
-
-        function togglePlayPause() {
-            if (!playerInstance) return;
-            if (isPlaying) {
-                playerInstance.pause();
-                isPlaying = false;
-            } else {
-                playerInstance.play();
-                isPlaying = true;
-            }
-            updatePlayPauseUI();
-        }
-
-        function updatePlayPauseUI() {
-            const label = isPlaying ? "⏸ Pause" : "▶ Play";
-            document.getElementById('play-pause-btn').innerText = label;
-            document.getElementById('fs-play-pause-btn').innerText = label;
-        }
-
-        function toggleMute() {
-            if (!playerInstance) return;
-            isMutedState = !isMutedState;
-            playerInstance.setMuted(isMutedState);
-            
-            const sliders = [document.getElementById('volume-slider'), document.getElementById('fs-volume-slider')];
-            const muteBtns = [document.getElementById('mute-btn'), document.getElementById('fs-mute-btn')];
-
-            if (isMutedState) {
-                muteBtns.forEach(btn => btn.innerText = "🔇");
-                sliders.forEach(slider => slider.value = 0);
-            } else {
-                muteBtns.forEach(btn => btn.innerText = "🔊");
-                sliders.forEach(slider => slider.value = previousVolume > 0 ? previousVolume : 0.8);
-            }
-        }
-
-        function changeVolume(val) {
-            if (!playerInstance) return;
-            const numericVal = parseFloat(val);
-            currentVolume = numericVal;
-            playerInstance.setVolume(numericVal);
-            
-            const muteBtns = [document.getElementById('mute-btn'), document.getElementById('fs-mute-btn')];
-            const sliders = [document.getElementById('volume-slider'), document.getElementById('fs-volume-slider')];
-
-            sliders.forEach(slider => slider.value = numericVal);
-
-            if (numericVal === 0) {
-                isMutedState = true;
-                playerInstance.setMuted(true);
-                muteBtns.forEach(btn => btn.innerText = "🔇");
-            } else {
-                isMutedState = false;
-                playerInstance.setMuted(false);
-                previousVolume = numericVal;
-                muteBtns.forEach(btn => btn.innerText = "🔊");
-            }
         }
 
         function toggleFullScreen() {
