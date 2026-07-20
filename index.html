@@ -222,7 +222,7 @@
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "THE REDWOOD MASSACRE", id: "k2btb1TuZW82y7HWJ4u", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWJ4u?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "THE REDWOOD MASSACRE", id: "k2btb1TuZW82y7HWJ4u", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Half Empty", id: "k3oEnpPscWIfF8HWOdw", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -284,7 +284,7 @@
       return;
     }
 
-    let activeCue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
+    let activeCue = cues.from ? cues.find(c => currentTime >= c.start && currentTime <= c.end) : cues.find(c => currentTime >= c.start && currentTime <= c.end);
     if (activeCue) {
       subtitleOverlay.innerText = activeCue.text;
     } else {
@@ -389,11 +389,9 @@
   wrapper.addEventListener('mousedown', triggerActivity);
   wrapper.addEventListener('touchstart', triggerActivity, { passive: true });
 
-  ['click', 'keydown', 'touchstart'].forEach(event => {
-    document.addEventListener(event, () => {
-      localStorage.setItem('dap_247_last_active', Date.now());
-    }, { passive: true });
-  });
+  ['click', 'keydown', 'touchstart'].forEach(event =>.addEventListener(event, () => {
+    localStorage.setItem('dap_247_last_active', Date.now());
+  }, { passive: true }));
 
   const TIMEOUT_LIMIT = 60 * 60 * 1000;
   const savedChannel = localStorage.getItem('dap_247_last_channel');
@@ -408,7 +406,7 @@
     let fullUserHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
     initialTime = fullUserHistory[initialIndex] ? fullUserHistory[initialIndex].time : null;
   } else {
-    initialIndex = Math.floor(Math.random() * stationData.length);
+    initialIndex = Math.fl(Math.random() * stationData.length);
     initialTime = getVirtualStationTime(initialIndex);
   }
 
