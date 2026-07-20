@@ -89,27 +89,27 @@
             backdrop-filter: blur(4px);
         }
 
-        /* Audio Gate Overlay to bypass browser autoplay sound restrictions */
+        /* High-Priority Audio Gate Overlay to bypass browser autoplay sound restrictions */
         #audio-gate {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.92);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             gap: 15px;
-            z-index: 25;
+            z-index: 50;
             cursor: pointer;
             transition: opacity 0.3s ease;
         }
 
         #audio-gate h2 {
             color: #FFD700;
-            font-size: 20px;
+            font-size: 22px;
             letter-spacing: 2px;
             text-transform: uppercase;
             text-align: center;
@@ -118,20 +118,28 @@
 
         #audio-gate p {
             color: #ccc;
-            font-size: 13px;
+            font-size: 14px;
+            text-align: center;
+            padding: 0 20px;
         }
 
         .unlock-btn {
             background: #FFD700;
             color: #000;
             border: none;
-            padding: 10px 24px;
+            padding: 12px 28px;
             font-weight: 800;
-            font-size: 14px;
+            font-size: 15px;
             letter-spacing: 1px;
             border-radius: 4px;
             cursor: pointer;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+            margin-top: 5px;
+        }
+
+        .unlock-btn:hover {
+            background: #fff;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
         }
 
         /* Transparent click shield */
@@ -299,10 +307,10 @@
     <div id="dap-container">
         <div class="dap-watermark-tag">D.A.P TV 24/7</div>
         
-        <!-- Audio Gate Overlay to satisfy browser security restrictions -->
+        <!-- Mandatory User Interaction Gate to bypass browser sound blocking blocks -->
         <div id="audio-gate" onclick="unlockAudio()">
             <h2>D.A.P TV 24/7 LIVE FEED</h2>
-            <p>Click anywhere or tap below to initialize stream audio</p>
+            <p>Click or tap anywhere to initialize broadcast sound & video</p>
             <button class="unlock-btn">ENTER BROADCAST</button>
         </div>
 
@@ -399,7 +407,7 @@
             playerSlot.innerHTML = '';
 
             const iframe = document.createElement('iframe');
-            // Starts muted securely to guarantee autoplay execution without browser blocks
+            // Safe initial muted flag guarantees the iframe loads without triggering browser policy cancellation
             iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=1&controls=0&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
             iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; web-share');
             iframe.setAttribute('allowfullscreen', 'true');
@@ -420,7 +428,7 @@
             updatePlayPauseUI();
         }
 
-        // Triggered the exact moment a user clicks "Enter Broadcast"
+        // Unlocks sound instantly upon user engagement with the overlay gate
         function unlockAudio() {
             const gate = document.getElementById('audio-gate');
             gate.style.opacity = '0';
@@ -448,12 +456,12 @@
                 currentIndex = 0;
             }
             renderActiveVideo();
-            // Keep sound unmuted on track changes once unlocked
+            
             if (!isMutedState && playerInstance) {
                 setTimeout(() => {
                     playerInstance.setMuted(false);
                     playerInstance.setVolume(currentVolume);
-                }, 500);
+                }, 600);
             }
         }
 
@@ -463,11 +471,12 @@
                 currentIndex = shuffledPlaylist.length - 1;
             }
             renderActiveVideo();
+            
             if (!isMutedState && playerInstance) {
                 setTimeout(() => {
                     playerInstance.setMuted(false);
                     playerInstance.setVolume(currentVolume);
-                }, 500);
+                }, 600);
             }
         }
 
