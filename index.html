@@ -4,14 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <link rel="manifest" href="manifest.json">
-  <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
   <style>
     body { background: #000; color: #fff; font-family: sans-serif; margin: 0; overflow-x: hidden; }
     #brand { text-align: center; color: #FFD700; font-size: clamp(18px, 4vw, 24px); font-weight: bold; padding: 10px; }
     #channel-display { text-align: center; color: #FFD700; background: #000; padding: 8px; font-weight: bold; font-size: clamp(14px, 3vw, 18px); border-bottom: 2px solid #FFD700; }
     
     .video-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; }
-    .video-js { width: 100% !important; height: 100% !important; }
     
     #category-badge {
         position: absolute; top: 10px; left: 10px; z-index: 2147483647;
@@ -29,20 +27,20 @@
         font-size: clamp(14px, 5vw, 28px);
     }
     
-    .vjs-fullscreen #category-badge { display: block !important; }
-    
     .fs-nav { 
         position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); 
         z-index: 2147483647; display: none; gap: 10px; opacity: 0; transition: opacity 0.3s; 
     }
-    .vjs-fullscreen .fs-nav { display: flex; }
-    .vjs-user-active .fs-nav { opacity: 1; }
     
     .fs-btn { background: #FFD700 !important; color: #000 !important; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; border-radius: 4px; }
 
     .nav-box { display: flex; justify-content: space-between; padding: 10px; }
     .nav-btn { background: #FFD700; color: #000; border: none; padding: 12px 24px; cursor: pointer; font-weight: bold; width: 48%; border-radius: 4px; }
     
+    /* Custom Fullscreen Button */
+    #fs-toggle-btn { background: #333; color: #FFD700; border: 1px solid #FFD700; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; margin: 5px auto; display: block; font-size: 14px; }
+    #fs-toggle-btn:hover { background: #FFD700; color: #000; }
+
     /* Now Playing Ticker Section */
     #now-playing-section {
       background: #111;
@@ -52,7 +50,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 10px;
+      margin-top: 5px;
     }
 
     #now-playing-label {
@@ -97,14 +95,13 @@
       font-weight: bold;
       letter-spacing: 0.5px;
     }
-
-    .vjs-control:focus { background-color: rgba(255, 215, 0, 0.4) !important; outline: 2px solid #FFD700 !important; }
   </style>
 </head>
 <body>
 
 <div id="brand">D.A.P TV 24/7</div>
 <div id="channel-display">Select a Stream</div>
+
 <div id="player-wrapper" class="video-container">
   <div id="category-badge">D.A.P TV 24/7</div>
   <div id="fs-channel-title">Stream Name</div>
@@ -112,8 +109,12 @@
       <button class="fs-btn" onclick="nav(-1)">PREV</button>
       <button class="fs-btn" onclick="nav(1)">NEXT</button>
   </div>
-  <video id="player" class="video-js vjs-default-skin" controls playsinline></video>
+  <div id="player-container" style="width:100%; height:100%; position:relative;">
+    <iframe id="dm-player" frameborder="0" width="100%" height="100%" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%;"></iframe>
+  </div>
 </div>
+
+<button id="fs-toggle-btn" onclick="toggleFullScreen()">FULLSCREEN</button>
 
 <div class="nav-box">
   <button class="nav-btn" onclick="nav(-1)">PREVIOUS</button>
@@ -128,97 +129,92 @@
   </div>
 </div>
 
-<script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 <script>
   if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
-
-  // Initialize native Video.js player for direct HLS stream links
-  const player = videojs('player', { 
-    autoplay: true, 
-    muted: true, 
-    controlBar: { volumePanel: { inline: false, vertical: true } } 
-  });
-  
-  let retryCount = 0;
-  player.on('error', function() { 
-    if (retryCount < 2) {
-      retryCount++;
-      player.load();
-    } else {
-      retryCount = 0;
-      nav(1);
-    }
-  });
-
-  // Fullscreen elements positioning logic matching your original setup
-  player.on('fullscreenchange', function() {
-    const wrapper = document.getElementById('player-wrapper');
-    const badge = document.getElementById('category-badge');
-    const titleOverlay = document.getElementById('fs-channel-title');
-    const fsNav = document.querySelector('.fs-nav');
-    if (player.isFullscreen()) {
-        player.el().appendChild(badge);
-        player.el().appendChild(titleOverlay);
-        player.el().appendChild(fsNav);
-    } else {
-        wrapper.appendChild(badge);
-        wrapper.appendChild(titleOverlay);
-        wrapper.appendChild(fsNav);
-    }
-  });
 
   const display = document.getElementById('channel-display');
   const nowPlayingLabel = document.getElementById('now-playing-label');
   const titleOverlay = document.getElementById('fs-channel-title');
+  const iframe = document.getElementById('dm-player');
+  const wrapper = document.getElementById('player-wrapper');
+  const badge = document.getElementById('category-badge');
+  const fsNav = document.querySelector('.fs-nav');
   
-  // Stream data ready for your direct video/stream URLs (e.g. .m3u8 manifests)
-  const streamData = [
-    { name: "Strive", url: "YOUR_DIRECT_STREAM_LINK_1.m3u8" },
-    { name: "Ink", url: "YOUR_DIRECT_STREAM_LINK_2.m3u8" },
-    { name: "THE REDWOOD MASSACRE", url: "YOUR_DIRECT_STREAM_LINK_3.m3u8" },
-    { name: "Nasty Old People", url: "YOUR_DIRECT_STREAM_LINK_4.m3u8" },
-    { name: "Half Empty", url: "YOUR_DIRECT_STREAM_LINK_5.m3u8" },
-    { name: "Artifacts Of Idealism", url: "YOUR_DIRECT_STREAM_LINK_6.m3u8" },
-    { name: "Tiger", url: "YOUR_DIRECT_STREAM_LINK_7.m3u8" }
+  // 7 24/7 Broadcast Stations with predefined estimated durations in seconds (e.g. ~90 minutes per movie)
+  const stationData = [
+    { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" },
+    { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" },
+    { name: "THE REDWOOD MASSACRE", id: "k2btb1TuZW82y7HWJ4u", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWJ4u?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" },
+    { name: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" },
+    { name: "Half Empty", id: "k3oEnpPscWIfF8HWOdw", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" },
+    { name: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" },
+    { name: "Tiger", id: "k5q4oSCRSb8wg7HWT2S", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" }
   ];
 
   let currentIndex = 0;
+  const STATION_EPOCH_KEY = 'dap_247_station_epoch';
 
-  function playChannel(index) {
+  // Master 24/7 Virtual Clock Engine: calculates where this station is running right now globally
+  function getVirtualStationTime(index) {
+    let epochs = JSON.parse(localStorage.getItem(STATION_EPOCH_KEY)) || {};
+    let now = Math.floor(Date.now() / 1000);
+    const station = stationData[index];
+
+    if (!epochs[index]) {
+      // Initialize a virtual live offset for this station
+      epochs[index] = { startTime: now - Math.floor(Math.random() * 1200) };
+      localStorage.setItem(STATION_EPOCH_KEY, JSON.stringify(epochs));
+    }
+
+    let elapsed = now - epochs[index].startTime;
+    let currentPosition = elapsed % station.duration;
+    return currentPosition;
+  }
+
+  function playStation(index, customOffset = null) {
     currentIndex = index;
-    const stream = streamData[index];
-    player.src({src: stream.url, type: 'application/x-mpegURL'});
-    player.play();
+    const station = stationData[index];
     
-    display.innerText = (index + 1) + ". " + stream.name;
-    nowPlayingLabel.innerText = "Now Playing: " + stream.name;
+    // Determine playhead offset (either saved user position, calculated live broadcast time, or forced)
+    let startSeconds = customOffset !== null ? customOffset : getVirtualStationTime(index);
     
+    // Construct strict custom clean player URL (suppressing Dailymotion suggestions/controls)
+    let cleanUrl = `${station.embed}&start=${startSeconds}`;
+    iframe.src = cleanUrl;
+    
+    display.innerText = (index + 1) + ". " + station.name;
+    nowPlayingLabel.innerText = "Now Playing: " + station.name;
+    
+    // Save user's specific history for station switching / session restoration
+    let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
+    userHistory[index] = { time: startSeconds, updated: Date.now() };
+    localStorage.setItem('dap_247_user_history', JSON.stringify(userHistory));
     localStorage.setItem('dap_247_last_channel', index);
     localStorage.setItem('dap_247_last_active', Date.now());
     
-    titleOverlay.innerText = (index + 1) + ". " + stream.name;
+    titleOverlay.innerText = (index + 1) + ". " + station.name;
     titleOverlay.style.opacity = 1;
     setTimeout(() => { titleOverlay.style.opacity = 0; }, 2000);
   }
 
-  // When a video/stream ends natively, automatically transition to a random next stream
-  player.on('ended', function() {
-    playRandomNext();
-  });
-
-  function playRandomNext() {
-    let nextIdx;
-    do {
-      nextIdx = Math.floor(Math.random() * streamData.length);
-    } while (nextIdx === currentIndex && streamData.length > 1);
-    
-    playChannel(nextIdx);
-  }
-
   function nav(direction) {
-    let currentIdx = parseInt(localStorage.getItem('dap_247_last_channel')) || 0;
-    currentIdx = (currentIdx + direction + streamData.length) % streamData.length;
-    playChannel(currentIdx);
+    let nextIdx = (currentIndex + direction + stationData.length) % stationData.length;
+    
+    // Check if the user has an active memory on this station within the last 60 minutes
+    let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
+    let stationHistory = userHistory[nextIdx];
+    let now = Date.now();
+    
+    let targetTime = null;
+    if (stationHistory && (now - stationHistory.updated < 60 * 60 * 1000)) {
+      // Pick up right where they left off (or slightly ahead)
+      targetTime = stationHistory.time;
+    } else {
+      // Otherwise, tune in like a live TV station already running
+      targetTime = getVirtualStationTime(nextIdx);
+    }
+    
+    playStation(nextIdx, targetTime);
   }
 
   document.addEventListener('keydown', (e) => {
@@ -226,31 +222,69 @@
     if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); nav(1); }
   });
 
+  // Dedicated custom Fullscreen Toggle Button logic
+  function toggleFullScreen() {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (wrapper.requestFullscreen) {
+        wrapper.requestFullscreen();
+      } else if (wrapper.webkitRequestFullscreen) {
+        wrapper.webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    }
+  }
+
+  // Handle Fullscreen UI asset shifting
+  function checkFullscreen() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+        wrapper.appendChild(badge);
+        wrapper.appendChild(titleOverlay);
+        wrapper.appendChild(fsNav);
+        fsNav.style.display = 'flex';
+        setTimeout(() => { fsNav.style.opacity = '1'; }, 50);
+    } else {
+        wrapper.appendChild(badge);
+        wrapper.appendChild(titleOverlay);
+        wrapper.appendChild(fsNav);
+        fsNav.style.display = 'none';
+        fsNav.style.opacity = '0';
+    }
+  }
+
+  document.addEventListener('fullscreenchange', checkFullscreen);
+  document.addEventListener('webkitfullscreenchange', checkFullscreen);
+
   ['click', 'keydown', 'touchstart'].forEach(event => {
     document.addEventListener(event, () => {
       localStorage.setItem('dap_247_last_active', Date.now());
     }, { passive: true });
   });
 
-  const TIMEOUT_LIMIT = 60 * 60 * 1000; 
+  // Initialization: 60-minute rule check on startup
+  const TIMEOUT_LIMIT = 60 * 60 * 1000;
   const savedChannel = localStorage.getItem('dap_247_last_channel');
   const lastActiveTime = localStorage.getItem('dap_247_last_active');
-  const now = Date.now();
+  const nowTime = Date.now();
   
-  let initialIndex;
-  
-  if (savedChannel !== null && lastActiveTime !== null) {
-    const elapsedInactiveTime = now - parseInt(lastActiveTime);
-    if (elapsedInactiveTime > TIMEOUT_LIMIT) {
-      initialIndex = Math.floor(Math.random() * streamData.length);
-    } else {
-      initialIndex = parseInt(savedChannel);
-    }
+  let initialIndex = 0;
+  let initialTime = null;
+
+  if (savedChannel !== null && lastActiveTime !== null && (nowTime - parseInt(lastActiveTime) < TIMEOUT_LIMIT)) {
+    initialIndex = parseInt(savedChannel);
+    let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
+    initialTime = userHistory[initialIndex] ? userHistory[initialIndex].time : null;
   } else {
-    initialIndex = Math.floor(Math.random() * streamData.length);
+    // If away longer than 1 hour or fresh visitor, tune into a live running station randomly
+    initialIndex = Math.floor(Math.random() * stationData.length);
+    initialTime = getVirtualStationTime(initialIndex);
   }
-  
-  playChannel(initialIndex);
+
+  playStation(initialIndex, initialTime);
 </script>
 </body>
 </html>
