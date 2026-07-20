@@ -41,7 +41,7 @@
     #fs-toggle-btn { background: #333; color: #FFD700; border: 1px solid #FFD700; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; margin: 5px auto; display: block; font-size: 14px; }
     #fs-toggle-btn:hover { background: #FFD700; color: #000; }
 
-    /* Now Playing Ticker Section */
+    /* Now Playing Ticker Section with Marquee Scrolling */
     #now-playing-section {
       background: #111;
       border-top: 2px solid #FFD700;
@@ -51,16 +51,29 @@
       justify-content: space-between;
       align-items: center;
       margin-top: 5px;
+      overflow: hidden;
+    }
+
+    .marquee-container {
+      overflow: hidden;
+      white-space: nowrap;
+      flex-grow: 1;
+      margin-right: 15px;
+      position: relative;
     }
 
     #now-playing-label {
+      display: inline-block;
       color: #fff;
       font-size: clamp(13px, 2.5vw, 16px);
       font-weight: bold;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      margin-right: 10px;
+      padding-left: 100%;
+      animation: marquee 15s linear infinite;
+    }
+
+    @keyframes marquee {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(-100%, 0); }
     }
 
     .live-feed-badge {
@@ -71,6 +84,7 @@
       padding: 6px 10px;
       border-radius: 20px;
       white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .live-dot {
@@ -110,7 +124,7 @@
       <button class="fs-btn" onclick="nav(1)">NEXT</button>
   </div>
   <div id="player-container" style="width:100%; height:100%; position:relative;">
-    <iframe id="dm-player" frameborder="0" width="100%" height="100%" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%;"></iframe>
+    <iframe id="dm-player" frameborder="0" width="100%" height="100%" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:auto;"></iframe>
   </div>
 </div>
 
@@ -122,7 +136,9 @@
 </div>
 
 <div id="now-playing-section">
-  <div id="now-playing-label">Playing: Loading...</div>
+  <div class="marquee-container">
+    <div id="now-playing-label">Playing: Loading...</div>
+  </div>
   <div class="live-feed-badge">
     <div class="live-dot"></div>
     <span class="live-text">D.A.P TV 24/7 FEED</span>
@@ -140,28 +156,25 @@
   const badge = document.getElementById('category-badge');
   const fsNav = document.querySelector('.fs-nav');
   
-  // 7 24/7 Broadcast Stations with predefined estimated durations in seconds (e.g. ~90 minutes per movie)
   const stationData = [
-    { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" },
-    { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" },
-    { name: "THE REDWOOD MASSACRE", id: "k2btb1TuZW82y7HWJ4u", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWJ4u?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" },
-    { name: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" },
-    { name: "Half Empty", id: "k3oEnpPscWIfF8HWOdw", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" },
-    { name: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" },
-    { name: "Tiger", id: "k5q4oSCRSb8wg7HWT2S", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S?autoplay=1&mute=1&controls=0&endscreen-enable=0&sharing-enable=0" }
+    { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "THE REDWOOD MASSACRE", id: "k2btb1TuZW82y7HWJ4u", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWJ4u?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Half Empty", id: "k3oEnpPscWIfF8HWOdw", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Tiger", id: "k5q4oSCRSb8wg7HWT2S", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" }
   ];
 
   let currentIndex = 0;
   const STATION_EPOCH_KEY = 'dap_247_station_epoch';
 
-  // Master 24/7 Virtual Clock Engine: calculates where this station is running right now globally
   function getVirtualStationTime(index) {
     let epochs = JSON.parse(localStorage.getItem(STATION_EPOCH_KEY)) || {};
     let now = Math.floor(Date.now() / 1000);
     const station = stationData[index];
 
     if (!epochs[index]) {
-      // Initialize a virtual live offset for this station
       epochs[index] = { startTime: now - Math.floor(Math.random() * 1200) };
       localStorage.setItem(STATION_EPOCH_KEY, JSON.stringify(epochs));
     }
@@ -175,17 +188,13 @@
     currentIndex = index;
     const station = stationData[index];
     
-    // Determine playhead offset (either saved user position, calculated live broadcast time, or forced)
     let startSeconds = customOffset !== null ? customOffset : getVirtualStationTime(index);
-    
-    // Construct strict custom clean player URL (suppressing Dailymotion suggestions/controls)
     let cleanUrl = `${station.embed}&start=${startSeconds}`;
     iframe.src = cleanUrl;
     
     display.innerText = (index + 1) + ". " + station.name;
     nowPlayingLabel.innerText = "Now Playing: " + station.name;
     
-    // Save user's specific history for station switching / session restoration
     let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
     userHistory[index] = { time: startSeconds, updated: Date.now() };
     localStorage.setItem('dap_247_user_history', JSON.stringify(userHistory));
@@ -199,18 +208,14 @@
 
   function nav(direction) {
     let nextIdx = (currentIndex + direction + stationData.length) % stationData.length;
-    
-    // Check if the user has an active memory on this station within the last 60 minutes
     let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
     let stationHistory = userHistory[nextIdx];
     let now = Date.now();
     
     let targetTime = null;
     if (stationHistory && (now - stationHistory.updated < 60 * 60 * 1000)) {
-      // Pick up right where they left off (or slightly ahead)
       targetTime = stationHistory.time;
     } else {
-      // Otherwise, tune in like a live TV station already running
       targetTime = getVirtualStationTime(nextIdx);
     }
     
@@ -222,7 +227,6 @@
     if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); nav(1); }
   });
 
-  // Dedicated custom Fullscreen Toggle Button logic
   function toggleFullScreen() {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
       if (wrapper.requestFullscreen) {
@@ -239,7 +243,6 @@
     }
   }
 
-  // Handle Fullscreen UI asset shifting
   function checkFullscreen() {
     if (document.fullscreenElement || document.webkitFullscreenElement) {
         wrapper.appendChild(badge);
@@ -265,7 +268,6 @@
     }, { passive: true });
   });
 
-  // Initialization: 60-minute rule check on startup
   const TIMEOUT_LIMIT = 60 * 60 * 1000;
   const savedChannel = localStorage.getItem('dap_247_last_channel');
   const lastActiveTime = localStorage.getItem('dap_247_last_active');
@@ -276,10 +278,10 @@
 
   if (savedChannel !== null && lastActiveTime !== null && (nowTime - parseInt(lastActiveTime) < TIMEOUT_LIMIT)) {
     initialIndex = parseInt(savedChannel);
-    let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
-    initialTime = userHistory[initialIndex] ? userHistory[initialIndex].time : null;
+    let userHistory = JSON.parse(localStorage.getItem('dap_247_last_channel')) || {};
+    let fullUserHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
+    initialTime = fullUserHistory[initialIndex] ? fullUserHistory[initialIndex].time : null;
   } else {
-    // If away longer than 1 hour or fresh visitor, tune into a live running station randomly
     initialIndex = Math.floor(Math.random() * stationData.length);
     initialTime = getVirtualStationTime(initialIndex);
   }
