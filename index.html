@@ -68,10 +68,6 @@
             margin: 0;
             border: none;
             border-radius: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
         }
 
         /* Floating Gold Network Branding Tag */
@@ -91,6 +87,51 @@
             z-index: 20;
             pointer-events: none;
             backdrop-filter: blur(4px);
+        }
+
+        /* Audio Gate Overlay to bypass browser autoplay sound restrictions */
+        #audio-gate {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            z-index: 25;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        #audio-gate h2 {
+            color: #FFD700;
+            font-size: 20px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        #audio-gate p {
+            color: #ccc;
+            font-size: 13px;
+        }
+
+        .unlock-btn {
+            background: #FFD700;
+            color: #000;
+            border: none;
+            padding: 10px 24px;
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 1px;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
         }
 
         /* Transparent click shield */
@@ -148,7 +189,7 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            background: rgba(20, 20, 20, 0.85);
+            background: rgba(20, 20, 20, 0.9);
             backdrop-filter: blur(6px);
             border-top: 2px solid #FFD700;
             padding: 12px 20px;
@@ -161,7 +202,6 @@
             pointer-events: none;
         }
 
-        /* Reveal overlay when container is in fullscreen and active/hovered */
         #dap-container:fullscreen .fullscreen-overlay-bar,
         #dap-container:-webkit-full-screen .fullscreen-overlay-bar,
         #dap-container:-moz-full-screen .fullscreen-overlay-bar {
@@ -200,7 +240,6 @@
             animation: pulse 1.5s infinite;
         }
 
-        /* Master Control Deck Buttons & Layout */
         .controls-group {
             display: flex;
             gap: 8px;
@@ -231,7 +270,6 @@
             box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
         }
 
-        /* Volume slider integration container */
         .volume-container {
             display: flex;
             align-items: center;
@@ -257,9 +295,17 @@
 </head>
 <body>
 
-    <!-- Main Player Frame Container with Shield, Tag, and Gold Border -->
+    <!-- Main Player Frame Container with Shield, Tag, Audio Gate, and Gold Border -->
     <div id="dap-container">
         <div class="dap-watermark-tag">D.A.P TV 24/7</div>
+        
+        <!-- Audio Gate Overlay to satisfy browser security restrictions -->
+        <div id="audio-gate" onclick="unlockAudio()">
+            <h2>D.A.P TV 24/7 LIVE FEED</h2>
+            <p>Click anywhere or tap below to initialize stream audio</p>
+            <button class="unlock-btn">ENTER BROADCAST</button>
+        </div>
+
         <div class="click-shield"></div>
         <div id="player-slot">
             <!-- Programmatic Player Injection Site -->
@@ -297,7 +343,6 @@
             <button class="dap-btn" id="play-pause-btn" onclick="togglePlayPause()">⏸ Pause</button>
             <button class="dap-btn" onclick="playNextVideo()">Next</button>
             
-            <!-- Combined Speaker Icon / Mute Button & Slider Deck -->
             <div class="volume-container">
                 <button class="dap-btn" id="mute-btn" onclick="toggleMute()" style="border:none; padding:0; background:transparent;">🔊</button>
                 <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.8" oninput="changeVolume(this.value)">
@@ -311,7 +356,6 @@
     <script src="https://controldev.dailymotion.com/player.js"></script>
 
     <script>
-        // Your Verified Video Catalog Array
         const videoCatalog = [
             { title: "Strive", id: "k4ObpDYw3BipbbHWEW2" },
             { title: "Ink", id: "k1OjGBaUwtLuvrHWG9U" },
@@ -326,7 +370,7 @@
         let currentIndex = 0;
         let playerInstance = null;
         let isPlaying = true;
-        let isMutedState = false; 
+        let isMutedState = true; 
         let currentVolume = 0.8;
         let previousVolume = 0.8;
 
@@ -355,8 +399,8 @@
             playerSlot.innerHTML = '';
 
             const iframe = document.createElement('iframe');
-            // Setting mute=0 and pre-setting volume ensures sound is active on load or via user interaction
-            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=0&controls=0&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
+            // Starts muted securely to guarantee autoplay execution without browser blocks
+            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=1&controls=0&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
             iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; web-share');
             iframe.setAttribute('allowfullscreen', 'true');
             iframe.setAttribute('webkitallowfullscreen', 'true');
@@ -368,17 +412,33 @@
                 video: currentVideo.id
             });
 
-            playerInstance.addEventListener('apiready', function() {
-                playerInstance.setVolume(currentVolume);
-                playerInstance.setMuted(isMutedState);
-            });
-
             playerInstance.addEventListener('ended', function() {
                 playNextVideo();
             });
 
             isPlaying = true;
             updatePlayPauseUI();
+        }
+
+        // Triggered the exact moment a user clicks "Enter Broadcast"
+        function unlockAudio() {
+            const gate = document.getElementById('audio-gate');
+            gate.style.opacity = '0';
+            setTimeout(() => {
+                gate.style.display = 'none';
+            }, 300);
+
+            if (playerInstance) {
+                isMutedState = false;
+                playerInstance.setMuted(false);
+                playerInstance.setVolume(currentVolume);
+                
+                const muteBtns = [document.getElementById('mute-btn'), document.getElementById('fs-mute-btn')];
+                const sliders = [document.getElementById('volume-slider'), document.getElementById('fs-volume-slider')];
+                
+                muteBtns.forEach(btn => btn.innerText = "🔊");
+                sliders.forEach(slider => slider.value = currentVolume);
+            }
         }
 
         function playNextVideo() {
@@ -388,6 +448,13 @@
                 currentIndex = 0;
             }
             renderActiveVideo();
+            // Keep sound unmuted on track changes once unlocked
+            if (!isMutedState && playerInstance) {
+                setTimeout(() => {
+                    playerInstance.setMuted(false);
+                    playerInstance.setVolume(currentVolume);
+                }, 500);
+            }
         }
 
         function playPreviousVideo() {
@@ -396,6 +463,12 @@
                 currentIndex = shuffledPlaylist.length - 1;
             }
             renderActiveVideo();
+            if (!isMutedState && playerInstance) {
+                setTimeout(() => {
+                    playerInstance.setMuted(false);
+                    playerInstance.setVolume(currentVolume);
+                }, 500);
+            }
         }
 
         function togglePlayPause() {
