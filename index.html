@@ -99,7 +99,7 @@
             text-align: center;
             font-size: 20px;
             font-weight: 700;
-            color: #FFD700; /* Signature D.A.P Gold Aesthetic */
+            color: #FFD700;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9), -2px -2px 4px rgba(0, 0, 0, 0.9);
             z-index: 25;
             pointer-events: none;
@@ -107,14 +107,14 @@
             line-height: 1.3;
         }
 
-        /* Interactive Audio Splash Screen to satisfy browser security rules */
+        /* Interactive Audio Splash Screen to guarantee stream launch */
         #audio-splash {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.88);
+            background: rgba(0, 0, 0, 0.92);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -126,7 +126,7 @@
 
         #audio-splash h2 {
             color: #FFD700;
-            font-size: 20px;
+            font-size: 22px;
             letter-spacing: 2px;
             text-transform: uppercase;
             text-align: center;
@@ -142,12 +142,27 @@
             background: #FFD700;
             color: #000;
             border: none;
-            padding: 10px 24px;
+            padding: 12px 28px;
             font-weight: 800;
             font-size: 14px;
             border-radius: 4px;
             cursor: pointer;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        }
+
+        .splash-btn:hover {
+            background: #fff;
+        }
+
+        /* Transparent Click Shield over top-right to block external branding/sharing icons */
+        .click-shield {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 140px;
+            height: 70px;
+            z-index: 15;
+            background: transparent;
         }
 
         /* Embedded Player Frame Wrapper */
@@ -291,15 +306,16 @@
         <!-- Native Gold Subtitles Layer -->
         <div id="dap-subtitle-overlay"></div>
 
-        <!-- Interactive Audio Splash Screen to satisfy browser security rules -->
+        <!-- Interactive Audio Splash Screen to launch stream instantly -->
         <div id="audio-splash" onclick="activateAudioStream()">
             <h2>D.A.P TV 24/7 LIVE BROADCAST</h2>
-            <p>Click or tap anywhere here to activate sound & stream</p>
-            <button class="splash-btn">CLICK TO START SOUND</button>
+            <p>Click or tap anywhere here to launch stream with sound</p>
+            <button class="splash-btn">ENTER BROADCAST</button>
         </div>
 
+        <div class="click-shield"></div>
         <div id="player-slot">
-            <!-- Dynamic Player Target -->
+            <!-- Dynamic Direct Iframe Target -->
         </div>
 
         <!-- Transient Fullscreen Control Deck Overlay -->
@@ -309,7 +325,6 @@
             </div>
             <div class="controls-group">
                 <button class="dap-btn" onclick="playPreviousVideo()">Prev</button>
-                <button class="dap-btn" onclick="toggleMuteState()" id="fs-mute-toggle-btn">🔊 Sound On</button>
                 <button class="dap-btn" onclick="toggleSubtitlesLang()" id="fs-lang-toggle-btn">CC: English</button>
                 <button class="dap-btn" onclick="playNextVideo()">Next</button>
                 <button class="dap-btn" onclick="toggleFullScreen()">Exit Fullscreen</button>
@@ -328,15 +343,11 @@
         </div>
         <div class="controls-group">
             <button class="dap-btn" onclick="playPreviousVideo()">Prev</button>
-            <button class="dap-btn" onclick="toggleMuteState()" id="mute-toggle-btn">🔊 Sound On</button>
             <button class="dap-btn" onclick="toggleSubtitlesLang()" id="lang-toggle-btn">CC: English</button>
             <button class="dap-btn" onclick="playNextVideo()">Next</button>
             <button class="dap-btn" onclick="toggleFullScreen()">Fullscreen</button>
         </div>
     </div>
-
-    <!-- Official Dailymotion Player SDK -->
-    <script src="https://controldev.dailymotion.com/player.js"></script>
 
     <script>
         const videoCatalog = [
@@ -349,7 +360,7 @@
             { title: "Tiger", id: "k5q4oSCRSb8wg7HWT2S" }
         ];
 
-        // Multi-language Subtitles Dictionaries (English defaults on load, with full Spanish & Danish loaded)
+        // Multi-language Subtitles Dictionaries (English, Spanish, Danish)
         const subDataSets = {
             en: [
                 { start: 11.0, end: 20.0, text: "DK text by Michael Wahlstrøm" },
@@ -380,12 +391,12 @@
             ]
         };
 
-        let currentLang = 'en'; // Defaults to English
+        let currentLang = 'en';
         let shuffledPlaylist = [];
         let currentIndex = 0;
-        let playerInstance = null;
-        let isMuted = false;
+        let streamStartTime = 0;
         let subInterval = null;
+        let isStarted = false;
 
         function shuffleArray(array) {
             let shuffled = [...array];
@@ -399,10 +410,22 @@
         function initializePlayer() {
             shuffledPlaylist = shuffleArray(videoCatalog);
             currentIndex = 0;
+        }
+
+        function activateAudioStream() {
+            isStarted = true;
+            const splash = document.getElementById('audio-splash');
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.style.display = 'none';
+            }, 300);
+
             renderActiveVideo();
         }
 
         function renderActiveVideo() {
+            if (!isStarted) return;
+
             const currentVideo = shuffledPlaylist[currentIndex];
             const playerSlot = document.getElementById('player-slot');
             
@@ -411,25 +434,17 @@
 
             playerSlot.innerHTML = '';
 
-            playerInstance = DM.player(playerSlot, {
-                video: currentVideo.id,
-                width: '100%',
-                height: '100%',
-                params: {
-                    autoplay: true,
-                    mute: isMuted,
-                    controls: false,
-                    'ui-start-screen-info': false,
-                    'ui-logo': false,
-                    'sharing-enable': false,
-                    'queue-enable': false
-                }
-            });
+            const iframe = document.createElement('iframe');
+            // mute=0 and autoplay=1 combined with the manual overlay click ensures instant sound & playback
+            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=0&controls=1&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
+            iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; web-share');
+            iframe.setAttribute('allowfullscreen', 'true');
+            iframe.setAttribute('webkitallowfullscreen', 'true');
+            iframe.setAttribute('mozallowfullscreen', 'true');
+            iframe.setAttribute('msallowfullscreen', 'true');
+            playerSlot.appendChild(iframe);
 
-            playerInstance.addEventListener('ended', function() {
-                playNextVideo();
-            });
-
+            streamStartTime = Date.now();
             startSubtitleSync();
         }
 
@@ -438,20 +453,17 @@
             const subContainer = document.getElementById('dap-subtitle-overlay');
 
             subInterval = setInterval(() => {
-                if (!playerInstance || typeof playerInstance.currentTime !== 'function') return;
+                if (!isStarted) return;
                 
-                try {
-                    const currentTime = playerInstance.currentTime();
-                    const activeDataSet = subDataSets[currentLang] || subDataSets['en'];
-                    const activeSub = activeDataSet.find(sub => currentTime >= sub.start && currentTime <= sub.end);
-                    
-                    if (activeSub) {
-                        subContainer.innerText = activeSub.text;
-                    } else {
-                        subContainer.innerText = "";
-                    }
-                } catch (e) {
-                    // Suppress boundary errors during initialization
+                // Track elapsed seconds since current video rendered
+                const elapsedSeconds = (Date.now() - streamStartTime) / 1000;
+                const activeDataSet = subDataSets[currentLang] || subDataSets['en'];
+                const activeSub = activeDataSet.find(sub => elapsedSeconds >= sub.start && elapsedSeconds <= sub.end);
+                
+                if (activeSub) {
+                    subContainer.innerText = activeSub.text;
+                } else {
+                    subContainer.innerText = "";
                 }
             }, 250);
         }
@@ -470,38 +482,6 @@
             
             document.getElementById('lang-toggle-btn').innerText = displayText;
             document.getElementById('fs-lang-toggle-btn').innerText = displayText;
-        }
-
-        function activateAudioStream() {
-            const splash = document.getElementById('audio-splash');
-            splash.style.opacity = '0';
-            setTimeout(() => {
-                splash.style.display = 'none';
-            }, 300);
-
-            isMuted = false;
-            if (playerInstance) {
-                playerInstance.setMuted(false);
-                playerInstance.setVolume(1.0);
-            }
-            updateSoundButtonUI();
-        }
-
-        function toggleMuteState() {
-            isMuted = !isMuted;
-            if (playerInstance) {
-                playerInstance.setMuted(isMuted);
-                if (!isMuted) {
-                    playerInstance.setVolume(1.0);
-                }
-            }
-            updateSoundButtonUI();
-        }
-
-        function updateSoundButtonUI() {
-            const text = isMuted ? "🔇 Muted" : "🔊 Sound On";
-            document.getElementById('mute-toggle-btn').innerText = text;
-            document.getElementById('fs-mute-toggle-btn').innerText = text;
         }
 
         function playNextVideo() {
