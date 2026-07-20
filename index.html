@@ -89,15 +89,69 @@
             backdrop-filter: blur(4px);
         }
 
-        /* Shield only blocks the top-right area to prevent clicking out to Dailymotion branding, leaving native play/volume usable */
+        /* Mandatory User Interaction Audio Gate to bypass browser sound blocking blocks */
+        #audio-gate {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.92);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            z-index: 50;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        #audio-gate h2 {
+            color: #FFD700;
+            font-size: 22px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        #audio-gate p {
+            color: #ccc;
+            font-size: 14px;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .unlock-btn {
+            background: #FFD700;
+            color: #000;
+            border: none;
+            padding: 12px 28px;
+            font-weight: 800;
+            font-size: 15px;
+            letter-spacing: 1px;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+            margin-top: 5px;
+        }
+
+        .unlock-btn:hover {
+            background: #fff;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
+        }
+
+        /* Transparent click shield to block tapping out to external links */
         .click-shield {
             position: absolute;
             top: 0;
-            right: 0;
-            width: 120px;
-            height: 70px;
-            z-index: 15;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
             background: transparent;
+            pointer-events: none; /* Allows clicks to pass through except where needed */
         }
 
         /* Embedded Player Frame Wrapper */
@@ -234,9 +288,17 @@
 </head>
 <body>
 
-    <!-- Main Player Frame Container with Shield, Tag, and Gold Border -->
+    <!-- Main Player Frame Container with Shield, Tag, Audio Gate, and Gold Border -->
     <div id="dap-container">
         <div class="dap-watermark-tag">D.A.P TV 24/7</div>
+        
+        <!-- User Interaction Gate to force-enable audio legally past browser restrictions -->
+        <div id="audio-gate" onclick="unlockAudio()">
+            <h2>D.A.P TV 24/7 LIVE FEED</h2>
+            <p>Click or tap anywhere to launch broadcast with sound</p>
+            <button class="unlock-btn">ENTER BROADCAST</button>
+        </div>
+
         <div class="click-shield"></div>
         <div id="player-slot">
             <!-- Programmatic Player Injection Site -->
@@ -288,6 +350,7 @@
         let shuffledPlaylist = [];
         let currentIndex = 0;
         let playerInstance = null;
+        let audioUnlocked = false;
 
         function shuffleArray(array) {
             let shuffled = [...array];
@@ -314,8 +377,8 @@
             playerSlot.innerHTML = '';
 
             const iframe = document.createElement('iframe');
-            // Enabling native controls=1 so viewers have native play and volume control, while queue-enable=0 / sharing-enable=0 blocks external channel switching recommendations
-            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=0&controls=1&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
+            // controls=0 completely eliminates all Dailymotion channel buttons and popups
+            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=1&controls=0&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
             iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; web-share');
             iframe.setAttribute('allowfullscreen', 'true');
             iframe.setAttribute('webkitallowfullscreen', 'true');
@@ -332,6 +395,21 @@
             });
         }
 
+        // Unlocks sound instantly when the user clicks the broadcast banner
+        function unlockAudio() {
+            audioUnlocked = true;
+            const gate = document.getElementById('audio-gate');
+            gate.style.opacity = '0';
+            setTimeout(() => {
+                gate.style.display = 'none';
+            }, 300);
+
+            if (playerInstance) {
+                playerInstance.setMuted(false);
+                playerInstance.setVolume(1.0);
+            }
+        }
+
         function playNextVideo() {
             currentIndex++;
             if (currentIndex >= shuffledPlaylist.length) {
@@ -339,6 +417,13 @@
                 currentIndex = 0;
             }
             renderActiveVideo();
+            
+            if (audioUnlocked && playerInstance) {
+                setTimeout(() => {
+                    playerInstance.setMuted(false);
+                    playerInstance.setVolume(1.0);
+                }, 600);
+            }
         }
 
         function playPreviousVideo() {
@@ -347,6 +432,13 @@
                 currentIndex = shuffledPlaylist.length - 1;
             }
             renderActiveVideo();
+            
+            if (audioUnlocked && playerInstance) {
+                setTimeout(() => {
+                    playerInstance.setMuted(false);
+                    playerInstance.setVolume(1.0);
+                }, 600);
+            }
         }
 
         function toggleFullScreen() {
