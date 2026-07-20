@@ -36,7 +36,7 @@
             margin: 20px 20px 0 20px;
         }
 
-        /* Fullscreen expansion across all devices (Desktop, Mobile, Tablets) */
+        /* Fullscreen expansion across all devices */
         #dap-container:fullscreen {
             max-width: 100%;
             width: 100vw;
@@ -44,6 +44,10 @@
             margin: 0;
             border: none;
             border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
         #dap-container:-webkit-full-screen {
             max-width: 100%;
@@ -52,6 +56,10 @@
             margin: 0;
             border: none;
             border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
         #dap-container:-moz-full-screen {
             max-width: 100%;
@@ -79,6 +87,17 @@
             z-index: 20;
             pointer-events: none;
             backdrop-filter: blur(4px);
+        }
+
+        /* Transparent shield to block direct clicking/tapping on the video frame */
+        .click-shield {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            background: transparent;
         }
 
         /* Embedded Player Frame Wrapper */
@@ -182,11 +201,12 @@
 </head>
 <body>
 
-    <!-- Main Player Frame Container with Gold Branding -->
+    <!-- Main Player Frame Container with Shield, Tag, and Gold Border -->
     <div id="dap-container">
         <div class="dap-watermark-tag">D.A.P TV 24/7</div>
+        <div class="click-shield"></div>
         <div id="player-slot">
-            <!-- Robust Dailymotion Frame Injection Site -->
+            <!-- Programmatic Player Injection Site -->
         </div>
     </div>
 
@@ -255,7 +275,8 @@
             playerSlot.innerHTML = '';
 
             const iframe = document.createElement('iframe');
-            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=1&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
+            // controls=0 strips out Dailymotion's native ui/buttons completely so users can't click out
+            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=1&controls=0&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
             iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; web-share');
             iframe.setAttribute('allowfullscreen', 'true');
             iframe.setAttribute('webkitallowfullscreen', 'true');
@@ -263,12 +284,11 @@
             iframe.setAttribute('msallowfullscreen', 'true');
             playerSlot.appendChild(iframe);
 
-            // Bind the Dailymotion SDK controller
+            // Bind the Dailymotion SDK controller to hook up custom button commands reliably
             playerInstance = DM.player(iframe, {
                 video: currentVideo.id
             });
 
-            // Automatically queue and loop strictly inside your network lineup when any video ends
             playerInstance.addEventListener('ended', function() {
                 playNextVideo();
             });
