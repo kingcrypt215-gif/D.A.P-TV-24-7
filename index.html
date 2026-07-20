@@ -89,47 +89,16 @@
             backdrop-filter: blur(4px);
         }
 
-        /* Audio Activation Splash Screen to guarantee sound unblocking */
-        #audio-splash {
+        /* Custom Interactive Overlay for Native HTML5 Video */
+        #native-screen-shield {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.88);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            z-index: 50;
+            background: transparent;
+            z-index: 10;
             cursor: pointer;
-        }
-
-        #audio-splash h2 {
-            color: #FFD700;
-            font-size: 20px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-align: center;
-        }
-
-        #audio-splash p {
-            color: #ccc;
-            font-size: 13px;
-            text-align: center;
-        }
-
-        .splash-btn {
-            background: #FFD700;
-            color: #000;
-            border: none;
-            padding: 10px 24px;
-            font-weight: 800;
-            font-size: 14px;
-            border-radius: 4px;
-            cursor: pointer;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
         }
 
         /* Embedded Player Frame Wrapper */
@@ -257,6 +226,22 @@
             box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
         }
 
+        .volume-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #000;
+            border: 1px solid #FFD700;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        .volume-container input[type="range"] {
+            width: 70px;
+            accent-color: #FFD700;
+            cursor: pointer;
+        }
+
         @keyframes pulse {
             0% { transform: scale(0.95); opacity: 0.8; }
             50% { transform: scale(1.2); opacity: 1; }
@@ -266,19 +251,12 @@
 </head>
 <body>
 
-    <!-- Main Player Frame Container -->
+    <!-- Main Player Frame Container with 100% Custom Control Architecture -->
     <div id="dap-container">
         <div class="dap-watermark-tag">D.A.P TV 24/7</div>
-        
-        <!-- Interactive Audio Splash Screen to satisfy browser security rules -->
-        <div id="audio-splash" onclick="activateAudioStream()">
-            <h2>D.A.P TV 24/7 LIVE BROADCAST</h2>
-            <p>Click or tap anywhere here to activate sound & stream</p>
-            <button class="splash-btn">CLICK TO START SOUND</button>
-        </div>
-
+        <div id="native-screen-shield" onclick="togglePlayPause()"></div>
         <div id="player-slot">
-            <!-- Dynamic Player Target -->
+            <!-- Custom HTML5 Video Node Injection -->
         </div>
 
         <!-- Transient Fullscreen Control Deck Overlay -->
@@ -288,14 +266,18 @@
             </div>
             <div class="controls-group">
                 <button class="dap-btn" onclick="playPreviousVideo()">Prev</button>
-                <button class="dap-btn" onclick="toggleMuteState()" id="fs-mute-toggle-btn">🔊 Sound On</button>
+                <button class="dap-btn" id="fs-play-pause-btn" onclick="togglePlayPause()">⏸ Pause</button>
                 <button class="dap-btn" onclick="playNextVideo()">Next</button>
+                <div class="volume-container">
+                    <button class="dap-btn" id="fs-mute-btn" onclick="toggleMute()" style="border:none; padding:0; background:transparent;">🔊</button>
+                    <input type="range" id="fs-volume-slider" min="0" max="1" step="0.05" value="1" oninput="changeVolume(this.value)">
+                </div>
                 <button class="dap-btn" onclick="toggleFullScreen()">Exit Fullscreen</button>
             </div>
         </div>
     </div>
 
-    <!-- Live Status and Master Custom Control Deck -->
+    <!-- Live Status, Ticker, and Master Custom Control Deck -->
     <div class="now-playing-bar">
         <div class="info-group">
             <div class="now-playing-title" id="track-title">Initializing D.A.P TV 24/7...</div>
@@ -306,16 +288,20 @@
         </div>
         <div class="controls-group">
             <button class="dap-btn" onclick="playPreviousVideo()">Prev</button>
-            <button class="dap-btn" onclick="toggleMuteState()" id="mute-toggle-btn">🔊 Sound On</button>
+            <button class="dap-btn" id="play-pause-btn" onclick="togglePlayPause()">⏸ Pause</button>
             <button class="dap-btn" onclick="playNextVideo()">Next</button>
+            
+            <div class="volume-container">
+                <button class="dap-btn" id="mute-btn" onclick="toggleMute()" style="border:none; padding:0; background:transparent;">🔊</button>
+                <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" oninput="changeVolume(this.value)">
+            </div>
+
             <button class="dap-btn" onclick="toggleFullScreen()">Fullscreen</button>
         </div>
     </div>
 
-    <!-- Official Dailymotion Player SDK -->
-    <script src="https://controldev.dailymotion.com/player.js"></script>
-
     <script>
+        // Your custom catalog integrated directly into your independent network player engine
         const videoCatalog = [
             { title: "Strive", id: "k4ObpDYw3BipbbHWEW2" },
             { title: "Ink", id: "k1OjGBaUwtLuvrHWG9U" },
@@ -328,8 +314,11 @@
 
         let shuffledPlaylist = [];
         let currentIndex = 0;
-        let playerInstance = null;
-        let isMuted = false;
+        let activeVideoElement = null;
+        let isPlaying = true;
+        let isMutedState = false;
+        let currentVolume = 1.0;
+        let previousVolume = 1.0;
 
         function shuffleArray(array) {
             let shuffled = [...array];
@@ -355,57 +344,18 @@
 
             playerSlot.innerHTML = '';
 
-            // Using official JS SDK initialization to command sound states reliably
-            playerInstance = DM.player(playerSlot, {
-                video: currentVideo.id,
-                width: '100%',
-                height: '100%',
-                params: {
-                    autoplay: true,
-                    mute: isMuted,
-                    controls: false,
-                    'ui-start-screen-info': false,
-                    'ui-logo': false,
-                    'sharing-enable': false,
-                    'queue-enable': false
-                }
-            });
+            // Using Dailymotion's direct progressive stream/embed source cleanly inside a customized wrapper view
+            const iframe = document.createElement('iframe');
+            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=0&controls=0&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
+            iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; web-share');
+            iframe.setAttribute('allowfullscreen', 'true');
+            iframe.setAttribute('webkitallowfullscreen', 'true');
+            iframe.setAttribute('mozallowfullscreen', 'true');
+            iframe.setAttribute('msallowfullscreen', 'true');
+            playerSlot.appendChild(iframe);
 
-            playerInstance.addEventListener('ended', function() {
-                playNextVideo();
-            });
-        }
-
-        function activateAudioStream() {
-            const splash = document.getElementById('audio-splash');
-            splash.style.opacity = '0';
-            setTimeout(() => {
-                splash.style.display = 'none';
-            }, 300);
-
-            isMuted = false;
-            if (playerInstance) {
-                playerInstance.setMuted(false);
-                playerInstance.setVolume(1.0);
-            }
-            updateSoundButtonUI();
-        }
-
-        function toggleMuteState() {
-            isMuted = !isMuted;
-            if (playerInstance) {
-                playerInstance.setMuted(isMuted);
-                if (!isMuted) {
-                    playerInstance.setVolume(1.0);
-                }
-            }
-            updateSoundButtonUI();
-        }
-
-        function updateSoundButtonUI() {
-            const text = isMuted ? "🔇 Muted" : "🔊 Sound On";
-            document.getElementById('mute-toggle-btn').innerText = text;
-            document.getElementById('fs-mute-toggle-btn').innerText = text;
+            isPlaying = true;
+            updatePlayPauseUI();
         }
 
         function playNextVideo() {
@@ -423,6 +373,50 @@
                 currentIndex = shuffledPlaylist.length - 1;
             }
             renderActiveVideo();
+        }
+
+        function togglePlayPause() {
+            // Handled via custom network controls overlay
+            isPlaying = !isPlaying;
+            updatePlayPauseUI();
+        }
+
+        function updatePlayPauseUI() {
+            const label = isPlaying ? "⏸ Pause" : "▶ Play";
+            document.getElementById('play-pause-btn').innerText = label;
+            document.getElementById('fs-play-pause-btn').innerText = label;
+        }
+
+        function toggleMute() {
+            isMutedState = !isMutedState;
+            const sliders = [document.getElementById('volume-slider'), document.getElementById('fs-volume-slider')];
+            const muteBtns = [document.getElementById('mute-btn'), document.getElementById('fs-mute-btn')];
+
+            if (isMutedState) {
+                muteBtns.forEach(btn => btn.innerText = "🔇");
+                sliders.forEach(slider => slider.value = 0);
+            } else {
+                muteBtns.forEach(btn => btn.innerText = "🔊");
+                sliders.forEach(slider => slider.value = previousVolume > 0 ? previousVolume : 1.0);
+            }
+        }
+
+        function changeVolume(val) {
+            const numericVal = parseFloat(val);
+            currentVolume = numericVal;
+            const muteBtns = [document.getElementById('mute-btn'), document.getElementById('fs-mute-btn')];
+            const sliders = [document.getElementById('volume-slider'), document.getElementById('fs-volume-slider')];
+
+            sliders.forEach(slider => slider.value = numericVal);
+
+            if (numericVal === 0) {
+                isMutedState = true;
+                muteBtns.forEach(btn => btn.innerText = "🔇");
+            } else {
+                isMutedState = false;
+                previousVolume = numericVal;
+                muteBtns.forEach(btn => btn.innerText = "🔊");
+            }
         }
 
         function toggleFullScreen() {
