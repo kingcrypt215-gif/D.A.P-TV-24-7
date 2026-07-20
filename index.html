@@ -51,7 +51,6 @@
       z-index: 2147483645; background: transparent; display: none;
     }
     .video-container.fullscreen-mode #click-shield { display: block; }
-    /* When active-user triggers, make shield allow clicking buttons on top of it */
     .video-container.fullscreen-mode.active-user #click-shield { pointer-events: none; }
 
     /* Now Playing Ticker Section with Marquee Scrolling */
@@ -173,13 +172,13 @@
   const wrapper = document.getElementById('player-wrapper');
   
   const stationData = [
-    { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0" },
-    { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0" },
-    { name: "THE REDWOOD MASSACRE", id: "k2btb1TuZW82y7HWJ4u", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0".replace("k1OjGBaUwtLuvrHWG9U","k2btb1TuZW82y7HWJ4u") },
-    { name: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0" },
-    { name: "Half Empty", id: "k3oEnpPscWIfF8HWOdw", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0" },
-    { name: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0" },
-    { name: "Tiger", id: "k5q4oSCRSb8wg7HWT2S", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0" }
+    { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "THE REDWOOD MASSACRE", id: "k2btb1TuZW82y7HWJ4u", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWJ4u?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Half Empty", id: "k3oEnpPscWIfF8HWOdw", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Tiger", id: "k5q4oSCRSb8wg7HWT2S", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" }
   ];
 
   let currentIndex = 0;
@@ -262,7 +261,6 @@
   function checkFullscreen() {
     if (document.fullscreenElement || document.webkitFullscreenElement) {
         wrapper.classList.add('fullscreen-mode');
-        // Trigger initial reveal so controls show up when entering fullscreen
         triggerActivity();
     } else {
         wrapper.classList.remove('fullscreen-mode');
@@ -280,11 +278,10 @@
       clearTimeout(fadeTimer);
       fadeTimer = setTimeout(() => {
         wrapper.classList.remove('active-user');
-      }, 3000); // Fades out after 3 seconds of inactivity
+      }, 3000);
     }
   }
 
-  // Trigger fade-in on mouse movement, clicks, or touches anywhere inside the video container
   wrapper.addEventListener('mousemove', triggerActivity);
   wrapper.addEventListener('mousedown', triggerActivity);
   wrapper.addEventListener('touchstart', triggerActivity, { passive: true });
