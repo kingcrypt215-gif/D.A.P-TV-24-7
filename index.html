@@ -89,7 +89,7 @@
             backdrop-filter: blur(4px);
         }
 
-        /* Transparent shield to block direct clicking/tapping on the video frame */
+        /* Transparent click shield to block direct interaction with video frame */
         .click-shield {
             position: absolute;
             top: 0;
@@ -164,7 +164,7 @@
             animation: pulse 1.5s infinite;
         }
 
-        /* Master Control Deck Buttons */
+        /* Master Control Deck Buttons & Layout */
         .controls-group {
             display: flex;
             gap: 8px;
@@ -184,12 +184,32 @@
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .dap-btn:hover {
             background: #FFD700;
             color: #000;
             box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        /* Volume slider integration container */
+        .volume-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #000;
+            border: 1px solid #FFD700;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        .volume-container input[type="range"] {
+            width: 70px;
+            accent-color: #FFD700;
+            cursor: pointer;
         }
 
         @keyframes pulse {
@@ -223,9 +243,13 @@
             <button class="dap-btn" onclick="playPreviousVideo()">Prev</button>
             <button class="dap-btn" id="play-pause-btn" onclick="togglePlayPause()">Pause</button>
             <button class="dap-btn" onclick="playNextVideo()">Next</button>
-            <button class="dap-btn" id="mute-btn" onclick="toggleMute()">Unmute</button>
-            <button class="dap-btn" onclick="adjustVolume(-0.2)">Vol -</button>
-            <button class="dap-btn" onclick="adjustVolume(0.2)">Vol +</button>
+            
+            <!-- Combined Mute / Volume Slider Deck -->
+            <div class="volume-container">
+                <button class="dap-btn" id="mute-btn" onclick="toggleMute()" style="border:none; padding:0; background:transparent;">🔊</button>
+                <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" oninput="changeVolume(this.value)">
+            </div>
+
             <button class="dap-btn" onclick="toggleFullScreen()">Fullscreen</button>
         </div>
     </div>
@@ -249,8 +273,8 @@
         let currentIndex = 0;
         let playerInstance = null;
         let isPlaying = true;
-        let isMutedState = true; 
-        let currentVol = 1.0;
+        let isMutedState = false; // Start unmuted; browser fallback handled securely via SDK
+        let previousVolume = 1.0;
 
         function shuffleArray(array) {
             let shuffled = [...array];
@@ -275,8 +299,7 @@
             playerSlot.innerHTML = '';
 
             const iframe = document.createElement('iframe');
-            // controls=0 strips out Dailymotion's native ui/buttons completely so users can't click out
-            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=1&controls=0&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
+            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=0&controls=0&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
             iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; web-share');
             iframe.setAttribute('allowfullscreen', 'true');
             iframe.setAttribute('webkitallowfullscreen', 'true');
@@ -284,17 +307,20 @@
             iframe.setAttribute('msallowfullscreen', 'true');
             playerSlot.appendChild(iframe);
 
-            // Bind the Dailymotion SDK controller to hook up custom button commands reliably
+            // Bind the Dailymotion SDK controller and initialize robust event listeners
             playerInstance = DM.player(iframe, {
                 video: currentVideo.id
+            });
+
+            playerInstance.addEventListener('apiready', function() {
+                playerInstance.setVolume(previousVolume);
+                playerInstance.setMuted(isMutedState);
             });
 
             playerInstance.addEventListener('ended', function() {
                 playNextVideo();
             });
 
-            isMutedState = true;
-            document.getElementById('mute-btn').innerText = "Unmute";
             isPlaying = true;
             document.getElementById('play-pause-btn').innerText = "Pause";
         }
@@ -333,18 +359,35 @@
             if (!playerInstance) return;
             isMutedState = !isMutedState;
             playerInstance.setMuted(isMutedState);
-            document.getElementById('mute-btn').innerText = isMutedState ? "Unmute" : "Mute";
+            
+            const muteBtn = document.getElementById('mute-btn');
+            const volumeSlider = document.getElementById('volume-slider');
+
+            if (isMutedState) {
+                muteBtn.innerText = "🔇";
+                volumeSlider.value = 0;
+            } else {
+                muteBtn.innerText = "🔊";
+                volumeSlider.value = previousVolume > 0 ? previousVolume : 1.0;
+            }
         }
 
-        function adjustVolume(amount) {
+        function changeVolume(val) {
             if (!playerInstance) return;
-            currentVol = Math.max(0, Math.min(1, currentVol + amount));
-            playerInstance.setVolume(currentVol);
+            const numericVal = parseFloat(val);
+            playerInstance.setVolume(numericVal);
             
-            if (currentVol > 0 && isMutedState) {
+            const muteBtn = document.getElementById('mute-btn');
+
+            if (numericVal === 0) {
+                isMutedState = true;
+                playerInstance.setMuted(true);
+                muteBtn.innerText = "🔇";
+            } else {
                 isMutedState = false;
                 playerInstance.setMuted(false);
-                document.getElementById('mute-btn').innerText = "Mute";
+                previousVolume = numericVal;
+                muteBtn.innerText = "🔊";
             }
         }
 
