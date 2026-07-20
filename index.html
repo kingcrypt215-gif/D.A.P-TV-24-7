@@ -1,458 +1,249 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D.A.P TV 24/7 LIVE</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { background: #000; color: #fff; font-family: sans-serif; margin: 0; overflow-x: hidden; }
+    #brand { text-align: center; color: #FFD700; font-size: clamp(18px, 4vw, 24px); font-weight: bold; padding: 10px; }
+    #channel-display { text-align: center; color: #FFD700; background: #000; padding: 8px; font-weight: bold; font-size: clamp(14px, 3vw, 18px); border-bottom: 2px solid #FFD700; }
+    
+    .video-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; }
+    
+    #category-badge {
+        position: absolute; top: 10px; left: 10px; z-index: 2147483647;
+        background: transparent !important; color: #FFD700;
+        padding: 5px 10px; font-size: clamp(12px, 2vw, 14px); font-weight: bold;
+        text-transform: uppercase; text-shadow: 2px 2px 4px #000;
+        pointer-events: none;
+    }
 
-        body {
-            background-color: #0b0b0b;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
+    #fs-channel-title {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        z-index: 2147483646; color: #FFD700; font-weight: bold;
+        text-shadow: 2px 2px 8px #000; opacity: 0; transition: opacity 0.5s;
+        pointer-events: none; text-align: center; width: 90%; white-space: nowrap;
+        font-size: clamp(14px, 5vw, 28px);
+    }
+    
+    .fs-nav { 
+        position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); 
+        z-index: 2147483647; display: none; gap: 10px; opacity: 0; transition: opacity 0.3s; 
+    }
+    
+    .fs-btn { background: #FFD700 !important; color: #000 !important; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; border-radius: 4px; }
 
-        /* Network Wrapper with Custom Gold Border Styling */
-        #dap-container {
-            position: relative;
-            width: 100%;
-            max-width: 960px;
-            aspect-ratio: 16 / 9;
-            background: #000;
-            border: 3px solid #FFD700;
-            border-radius: 8px 8px 0 0;
-            box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
-            margin: 20px 20px 0 20px;
-        }
+    .nav-box { display: flex; justify-content: space-between; padding: 10px; }
+    .nav-btn { background: #FFD700; color: #000; border: none; padding: 12px 24px; cursor: pointer; font-weight: bold; width: 48%; border-radius: 4px; }
+    
+    /* Now Playing Ticker Section */
+    #now-playing-section {
+      background: #111;
+      border-top: 2px solid #FFD700;
+      border-bottom: 2px solid #FFD700;
+      padding: 12px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+    }
 
-        /* Fullscreen expansion across all devices */
-        #dap-container:fullscreen {
-            max-width: 100%;
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
-            border: none;
-            border-radius: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
-        }
-        #dap-container:-webkit-full-screen {
-            max-width: 100%;
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
-            border: none;
-            border-radius: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
-        }
-        #dap-container:-moz-full-screen {
-            max-width: 100%;
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
-            border: none;
-            border-radius: 0;
-        }
+    #now-playing-label {
+      color: #fff;
+      font-size: clamp(13px, 2.5vw, 16px);
+      font-weight: bold;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-right: 10px;
+    }
 
-        /* Floating Gold Network Branding Tag */
-        .dap-watermark-tag {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            background: rgba(0, 0, 0, 0.75);
-            border: 1px solid #FFD700;
-            color: #FFD700;
-            padding: 6px 12px;
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            border-radius: 4px;
-            z-index: 20;
-            pointer-events: none;
-            backdrop-filter: blur(4px);
-        }
+    .live-feed-badge {
+      display: flex;
+      align-items: center;
+      background: #222;
+      border: 1px solid #444;
+      padding: 6px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
 
-        /* Audio Activation Splash Screen to guarantee sound unblocking */
-        #audio-splash {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.88);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            z-index: 50;
-            cursor: pointer;
-        }
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      background-color: #ff3b30;
+      border-radius: 50%;
+      margin-right: 6px;
+      box-shadow: 0 0 8px #ff3b30;
+      animation: pulse-red 1.5s infinite;
+    }
 
-        #audio-splash h2 {
-            color: #FFD700;
-            font-size: 20px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-align: center;
-        }
+    @keyframes pulse-red {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(255, 59, 48, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+    }
 
-        #audio-splash p {
-            color: #ccc;
-            font-size: 13px;
-            text-align: center;
-        }
-
-        .splash-btn {
-            background: #FFD700;
-            color: #000;
-            border: none;
-            padding: 10px 24px;
-            font-weight: 800;
-            font-size: 14px;
-            border-radius: 4px;
-            cursor: pointer;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-        }
-
-        /* Embedded Player Frame Wrapper */
-        #player-slot {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        #player-slot iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        /* Custom Network Control & Now Playing Bar */
-        .now-playing-bar {
-            width: 100%;
-            max-width: 960px;
-            padding: 15px 20px;
-            background: #141414;
-            border: 2px solid #FFD700;
-            border-top: none;
-            border-bottom-left-radius: 8px;
-            border-bottom-right-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 15px;
-            flex-wrap: wrap;
-            z-index: 30;
-        }
-
-        /* Transient On-Screen Control Overlay specifically for Fullscreen mode */
-        #dap-container:not(:fullscreen):not(:-webkit-full-screen):not(:-moz-full-screen) .fullscreen-overlay-bar {
-            display: none !important;
-        }
-
-        .fullscreen-overlay-bar {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(20, 20, 20, 0.9);
-            backdrop-filter: blur(6px);
-            border-top: 2px solid #FFD700;
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 40;
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-            pointer-events: none;
-        }
-
-        #dap-container:fullscreen .fullscreen-overlay-bar,
-        #dap-container:-webkit-full-screen .fullscreen-overlay-bar,
-        #dap-container:-moz-full-screen .fullscreen-overlay-bar {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .info-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .now-playing-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #e5e5e5;
-            letter-spacing: 0.5px;
-        }
-
-        .live-indicator {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #FFD700;
-        }
-
-        .live-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #ff3b30;
-            border-radius: 50%;
-            box-shadow: 0 0 8px #ff3b30;
-            animation: pulse 1.5s infinite;
-        }
-
-        .controls-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .dap-btn {
-            background: #000;
-            border: 1px solid #FFD700;
-            color: #FFD700;
-            padding: 8px 12px;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .dap-btn:hover {
-            background: #FFD700;
-            color: #000;
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.8; }
-        }
-    </style>
+    .live-text {
+      color: #FFD700;
+      font-size: clamp(10px, 2vw, 12px);
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+  </style>
 </head>
 <body>
 
-    <!-- Main Player Frame Container -->
-    <div id="dap-container">
-        <div class="dap-watermark-tag">D.A.P TV 24/7</div>
-        
-        <!-- Interactive Audio Splash Screen to satisfy browser security rules -->
-        <div id="audio-splash" onclick="activateAudioStream()">
-            <h2>D.A.P TV 24/7 LIVE BROADCAST</h2>
-            <p>Click or tap anywhere here to activate sound & stream</p>
-            <button class="splash-btn">CLICK TO START SOUND</button>
-        </div>
+<div id="brand">D.A.P TV 24/7</div>
+<div id="channel-display">Select a Stream</div>
+<div id="player-wrapper" class="video-container">
+  <div id="category-badge">D.A.P TV 24/7</div>
+  <div id="fs-channel-title">Stream Name</div>
+  <div class="fs-nav">
+      <button class="fs-btn" onclick="nav(-1)">PREV</button>
+      <button class="fs-btn" onclick="nav(1)">NEXT</button>
+  </div>
+  <div id="player-container" style="width:100%; height:100%; position:relative;">
+    <iframe id="dm-player" frameborder="0" width="100%" height="100%" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%;"></iframe>
+  </div>
+</div>
 
-        <div id="player-slot">
-            <!-- Dynamic Player Target -->
-        </div>
+<div class="nav-box">
+  <button class="nav-btn" onclick="nav(-1)">PREVIOUS</button>
+  <button class="nav-btn" onclick="nav(1)">NEXT</button>
+</div>
 
-        <!-- Transient Fullscreen Control Deck Overlay -->
-        <div class="fullscreen-overlay-bar">
-            <div class="info-group">
-                <div class="now-playing-title" id="fs-track-title" style="color: #FFD700; font-size:12px;">D.A.P TV LIVE</div>
-            </div>
-            <div class="controls-group">
-                <button class="dap-btn" onclick="playPreviousVideo()">Prev</button>
-                <button class="dap-btn" onclick="toggleMuteState()" id="fs-mute-toggle-btn">🔊 Sound On</button>
-                <button class="dap-btn" onclick="playNextVideo()">Next</button>
-                <button class="dap-btn" onclick="toggleFullScreen()">Exit Fullscreen</button>
-            </div>
-        </div>
-    </div>
+<div id="now-playing-section">
+  <div id="now-playing-label">Playing: Loading...</div>
+  <div class="live-feed-badge">
+    <div class="live-dot"></div>
+    <span class="live-text">D.A.P TV 24/7 FEED</span>
+  </div>
+</div>
 
-    <!-- Live Status and Master Custom Control Deck -->
-    <div class="now-playing-bar">
-        <div class="info-group">
-            <div class="now-playing-title" id="track-title">Initializing D.A.P TV 24/7...</div>
-            <div class="live-indicator">
-                <div class="live-dot"></div>
-                24/7 FEED
-            </div>
-        </div>
-        <div class="controls-group">
-            <button class="dap-btn" onclick="playPreviousVideo()">Prev</button>
-            <button class="dap-btn" onclick="toggleMuteState()" id="mute-toggle-btn">🔊 Sound On</button>
-            <button class="dap-btn" onclick="playNextVideo()">Next</button>
-            <button class="dap-btn" onclick="toggleFullScreen()">Fullscreen</button>
-        </div>
-    </div>
+<script src="https://akt.dailymotion.com/sdk.js"></script>
+<script>
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 
-    <!-- Official Dailymotion Player SDK -->
-    <script src="https://controldev.dailymotion.com/player.js"></script>
+  const display = document.getElementById('channel-display');
+  const nowPlayingLabel = document.getElementById('now-playing-label');
+  const titleOverlay = document.getElementById('fs-channel-title');
+  const iframe = document.getElementById('dm-player');
+  const wrapper = document.getElementById('player-wrapper');
+  const badge = document.getElementById('category-badge');
+  const fsNav = document.querySelector('.fs-nav');
+  
+  const streamData = [
+    { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", url: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1" },
+    { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", url: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1" },
+    { name: "THE REDWOOD MASSACRE", id: "k2btb1TuZW82y7HWJ4u", url: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWJ4u?autoplay=1" },
+    { name: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4", url: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4?autoplay=1" },
+    { name: "Half Empty", id: "k3oEnpPscWIfF8HWOdw", url: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw?autoplay=1" },
+    { name: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q", url: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q?autoplay=1" },
+    { name: "Tiger", id: "k5q4oSCRSb8wg7HWT2S", url: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S?autoplay=1" }
+  ];
 
-    <script>
-        const videoCatalog = [
-            { title: "Strive", id: "k4ObpDYw3BipbbHWEW2" },
-            { title: "Ink", id: "k1OjGBaUwtLuvrHWG9U" },
-            { title: "The Redwood Massacre", id: "k2btb1TuZW82y7HWJ4u" },
-            { title: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4" },
-            { title: "Half Empty", id: "k3oEnpPscWIfF8HWOdw" },
-            { title: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q" },
-            { title: "Tiger", id: "k5q4oSCRSb8wg7HWT2S" }
-        ];
+  let currentIndex = 0;
+  let dmPlayerInstance = null;
 
-        let shuffledPlaylist = [];
-        let currentIndex = 0;
-        let playerInstance = null;
-        let isMuted = false;
+  function playChannel(index) {
+    currentIndex = index;
+    const stream = streamData[index];
+    iframe.src = stream.url;
+    
+    display.innerText = (index + 1) + ". " + stream.name;
+    nowPlayingLabel.innerText = "Now Playing: " + stream.name;
+    
+    localStorage.setItem('dap_247_last_channel', index);
+    localStorage.setItem('dap_247_last_active', Date.now());
+    
+    titleOverlay.innerText = (index + 1) + ". " + stream.name;
+    titleOverlay.style.opacity = 1;
+    setTimeout(() => { titleOverlay.style.opacity = 0; }, 2000);
 
-        function shuffleArray(array) {
-            let shuffled = [...array];
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-            return shuffled;
-        }
+    if (window.dailymotion) {
+      if (dmPlayerInstance) {
+        try { dmPlayerInstance.destroy(); } catch(e) {}
+      }
+      try {
+        dmPlayerInstance = dailymotion.player(iframe, {
+          video: stream.id,
+          params: { autoplay: 1 }
+        });
+        dmPlayerInstance.on('end', () => {
+          playRandomNext();
+        });
+      } catch (err) {
+        console.log("SDK init fallback", err);
+      }
+    }
+  }
 
-        function initializePlayer() {
-            shuffledPlaylist = shuffleArray(videoCatalog);
-            currentIndex = 0;
-            renderActiveVideo();
-        }
+  function playRandomNext() {
+    let nextIdx;
+    do {
+      nextIdx = Math.floor(Math.random() * streamData.length);
+    } while (nextIdx === currentIndex && streamData.length > 1);
+    
+    playChannel(nextIdx);
+  }
 
-        function renderActiveVideo() {
-            const currentVideo = shuffledPlaylist[currentIndex];
-            const playerSlot = document.getElementById('player-slot');
-            
-            document.getElementById('track-title').innerText = "NOW STREAMING: " + currentVideo.title;
-            document.getElementById('fs-track-title').innerText = currentVideo.title;
+  function nav(direction) {
+    let currentIdx = parseInt(localStorage.getItem('dap_247_last_channel')) || 0;
+    currentIdx = (currentIdx + direction + streamData.length) % streamData.length;
+    playChannel(currentIdx);
+  }
 
-            playerSlot.innerHTML = '';
+  document.addEventListener('keydown', (e) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); nav(-1); }
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); nav(1); }
+  });
 
-            // Using official JS SDK initialization to command sound states reliably
-            playerInstance = DM.player(playerSlot, {
-                video: currentVideo.id,
-                width: '100%',
-                height: '100%',
-                params: {
-                    autoplay: true,
-                    mute: isMuted,
-                    controls: false,
-                    'ui-start-screen-info': false,
-                    'ui-logo': false,
-                    'sharing-enable': false,
-                    'queue-enable': false
-                }
-            });
+  ['click', 'keydown', 'touchstart'].forEach(event => {
+    document.addEventListener(event, () => {
+      localStorage.setItem('dap_247_last_active', Date.now());
+    }, { passive: true });
+  });
 
-            playerInstance.addEventListener('ended', function() {
-                playNextVideo();
-            });
-        }
+  function checkFullscreen() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+        iframe.parentNode.appendChild(badge);
+        iframe.parentNode.appendChild(titleOverlay);
+        iframe.parentNode.appendChild(fsNav);
+        fsNav.style.display = 'flex';
+        setTimeout(() => { fsNav.style.opacity = '1'; }, 50);
+    } else {
+        wrapper.appendChild(badge);
+        wrapper.appendChild(titleOverlay);
+        wrapper.appendChild(fsNav);
+        fsNav.style.display = 'none';
+        fsNav.style.opacity = '0';
+    }
+  }
 
-        function activateAudioStream() {
-            const splash = document.getElementById('audio-splash');
-            splash.style.opacity = '0';
-            setTimeout(() => {
-                splash.style.display = 'none';
-            }, 300);
+  document.addEventListener('fullscreenchange', checkFullscreen);
+  document.addEventListener('webkitfullscreenchange', checkFullscreen);
 
-            isMuted = false;
-            if (playerInstance) {
-                playerInstance.setMuted(false);
-                playerInstance.setVolume(1.0);
-            }
-            updateSoundButtonUI();
-        }
-
-        function toggleMuteState() {
-            isMuted = !isMuted;
-            if (playerInstance) {
-                playerInstance.setMuted(isMuted);
-                if (!isMuted) {
-                    playerInstance.setVolume(1.0);
-                }
-            }
-            updateSoundButtonUI();
-        }
-
-        function updateSoundButtonUI() {
-            const text = isMuted ? "🔇 Muted" : "🔊 Sound On";
-            document.getElementById('mute-toggle-btn').innerText = text;
-            document.getElementById('fs-mute-toggle-btn').innerText = text;
-        }
-
-        function playNextVideo() {
-            currentIndex++;
-            if (currentIndex >= shuffledPlaylist.length) {
-                shuffledPlaylist = shuffleArray(videoCatalog);
-                currentIndex = 0;
-            }
-            renderActiveVideo();
-        }
-
-        function playPreviousVideo() {
-            currentIndex--;
-            if (currentIndex < 0) {
-                currentIndex = shuffledPlaylist.length - 1;
-            }
-            renderActiveVideo();
-        }
-
-        function toggleFullScreen() {
-            const container = document.getElementById('dap-container');
-            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
-                if (container.requestFullscreen) {
-                    container.requestFullscreen();
-                } else if (container.webkitRequestFullscreen) {
-                    container.webkitRequestFullscreen();
-                } else if (container.mozRequestFullScreen) {
-                    container.mozRequestFullScreen();
-                } else if (container.msRequestFullscreen) {
-                    container.msRequestFullscreen();
-                }
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.mozCancelFullScreen) {
-                    document.mozCancelFullScreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
-                }
-            }
-        }
-
-        window.onload = function() {
-            initializePlayer();
-        };
-    </script>
+  const TIMEOUT_LIMIT = 60 * 60 * 1000; 
+  const savedChannel = localStorage.getItem('dap_247_last_channel');
+  const lastActiveTime = localStorage.getItem('dap_247_last_active');
+  const now = Date.now();
+  
+  let initialIndex;
+  
+  if (savedChannel !== null && lastActiveTime !== null) {
+    const elapsedInactiveTime = now - parseInt(lastActiveTime);
+    if (elapsedInactiveTime > TIMEOUT_LIMIT) {
+      initialIndex = Math.floor(Math.random() * streamData.length);
+    } else {
+      initialIndex = parseInt(savedChannel);
+    }
+  } else {
+    initialIndex = Math.floor(Math.random() * streamData.length);
+  }
+  
+  playChannel(initialIndex);
+</script>
 </body>
 </html>
