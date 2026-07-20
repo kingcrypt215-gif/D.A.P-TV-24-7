@@ -12,7 +12,7 @@
     .video-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; }
     
     #category-badge {
-        position: absolute; top: 10px; left: 10px; z-index: 2147483647;
+        position: absolute; top: 15px; left: 15px; z-index: 2147483647;
         background: transparent !important; color: #FFD700;
         padding: 5px 10px; font-size: clamp(12px, 2vw, 14px); font-weight: bold;
         text-transform: uppercase; text-shadow: 2px 2px 4px #000;
@@ -30,10 +30,10 @@
     /* Transient Fullscreen Navigation & Controls Overlay */
     .fs-nav { 
         position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); 
-        z-index: 2147483647; display: none; gap: 15px; align-items: center;
-        opacity: 0; transition: opacity 0.4s ease-in-out; 
+        z-index: 2147483647; display: flex; gap: 15px; align-items: center;
+        opacity: 0; visibility: hidden; transition: opacity 0.4s ease-in-out, visibility 0.4s ease-in-out; 
     }
-    .video-container.active-user .fs-nav { opacity: 1; }
+    .video-container.active-user .fs-nav { opacity: 1; visibility: visible; }
     
     .fs-btn { background: #FFD700 !important; color: #000 !important; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: clamp(12px, 2vw, 16px); box-shadow: 0 2px 8px rgba(0,0,0,0.8); }
     .fs-btn:hover { background: #fff !important; }
@@ -44,6 +44,15 @@
     /* Custom Fullscreen Button */
     #fs-toggle-btn { background: #333; color: #FFD700; border: 1px solid #FFD700; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; margin: 5px auto; display: block; font-size: 14px; }
     #fs-toggle-btn:hover { background: #FFD700; color: #000; }
+
+    /* Invisible Shield Overlay to completely intercept clicks and prevent Dailymotion overlays from triggering */
+    #click-shield {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 2147483645; background: transparent; display: none;
+    }
+    .video-container.fullscreen-mode #click-shield { display: block; }
+    /* When active-user triggers, make shield allow clicking buttons on top of it */
+    .video-container.fullscreen-mode.active-user #click-shield { pointer-events: none; }
 
     /* Now Playing Ticker Section with Marquee Scrolling */
     #now-playing-section {
@@ -123,6 +132,7 @@
 <div id="player-wrapper" class="video-container">
   <div id="category-badge">D.A.P TV 24/7</div>
   <div id="fs-channel-title">Stream Name</div>
+  <div id="click-shield"></div>
   
   <!-- Transient Fullscreen Navigation & Exit Box -->
   <div class="fs-nav">
@@ -132,7 +142,7 @@
   </div>
 
   <div id="player-container" style="width:100%; height:100%; position:relative;">
-    <iframe id="dm-player" frameborder="0" width="100%" height="100%" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:auto;"></iframe>
+    <iframe id="dm-player" frameborder="0" width="100%" height="100%" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%;"></iframe>
   </div>
 </div>
 
@@ -161,17 +171,15 @@
   const titleOverlay = document.getElementById('fs-channel-title');
   const iframe = document.getElementById('dm-player');
   const wrapper = document.getElementById('player-wrapper');
-  const badge = document.getElementById('category-badge');
-  const fsNav = document.querySelector('.fs-nav');
   
   const stationData = [
-    { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "THE REDWOOD MASSACRE", id: "k2btb1TuZW82y7HWJ4u", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWJ4u?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "Half Empty", id: "k3oEnpPscWIfF8HWOdw", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "Tiger", id: "k5q4oSCRSb8wg7HWT2S", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" }
+    { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0" },
+    { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0" },
+    { name: "THE REDWOOD MASSACRE", id: "k2btb1TuZW82y7HWJ4u", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0".replace("k1OjGBaUwtLuvrHWG9U","k2btb1TuZW82y7HWJ4u") },
+    { name: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0" },
+    { name: "Half Empty", id: "k3oEnpPscWIfF8HWOdw", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0" },
+    { name: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0" },
+    { name: "Tiger", id: "k5q4oSCRSb8wg7HWT2S", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0&ui-logo=0&ui-start-screen-info=0" }
   ];
 
   let currentIndex = 0;
@@ -253,15 +261,11 @@
 
   function checkFullscreen() {
     if (document.fullscreenElement || document.webkitFullscreenElement) {
-        wrapper.appendChild(badge);
-        wrapper.appendChild(titleOverlay);
-        wrapper.appendChild(fsNav);
-        fsNav.style.display = 'flex';
+        wrapper.classList.add('fullscreen-mode');
+        // Trigger initial reveal so controls show up when entering fullscreen
+        triggerActivity();
     } else {
-        wrapper.appendChild(badge);
-        wrapper.appendChild(titleOverlay);
-        wrapper.appendChild(fsNav);
-        fsNav.style.display = 'none';
+        wrapper.classList.remove('fullscreen-mode');
         wrapper.classList.remove('active-user');
     }
   }
@@ -269,27 +273,21 @@
   document.addEventListener('fullscreenchange', checkFullscreen);
   document.addEventListener('webkitfullscreenchange', checkFullscreen);
 
-  // Transient control fade logic on mouse movement or touch in fullscreen
   let fadeTimer = null;
-  wrapper.addEventListener('mousemove', () => {
+  function triggerActivity() {
     if (document.fullscreenElement || document.webkitFullscreenElement) {
       wrapper.classList.add('active-user');
       clearTimeout(fadeTimer);
       fadeTimer = setTimeout(() => {
         wrapper.classList.remove('active-user');
-      }, 2500); // Fades out after 2.5 seconds of no mouse movement
+      }, 3000); // Fades out after 3 seconds of inactivity
     }
-  });
+  }
 
-  wrapper.addEventListener('touchstart', () => {
-    if (document.fullscreenElement || document.webkitFullscreenElement) {
-      wrapper.classList.add('active-user');
-      clearTimeout(fadeTimer);
-      fadeTimer = setTimeout(() => {
-        wrapper.classList.remove('active-user');
-      }, 3000);
-    }
-  }, { passive: true });
+  // Trigger fade-in on mouse movement, clicks, or touches anywhere inside the video container
+  wrapper.addEventListener('mousemove', triggerActivity);
+  wrapper.addEventListener('mousedown', triggerActivity);
+  wrapper.addEventListener('touchstart', triggerActivity, { passive: true });
 
   ['click', 'keydown', 'touchstart'].forEach(event => {
     document.addEventListener(event, () => {
