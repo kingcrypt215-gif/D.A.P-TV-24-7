@@ -295,8 +295,9 @@
     currentIndex = index;
     const station = stationData[index];
     
+    // Automatically aligns subtitle tracking clock with whatever virtual broadcast point the stream picks up at
     let startSeconds = customOffset !== null ? customOffset : getVirtualStationTime(index);
-    playbackSeconds = startSeconds; // Keep active counter synced
+    playbackSeconds = startSeconds; 
     
     let cleanUrl = `${station.embed}&start=${startSeconds}`;
     iframe.src = cleanUrl;
@@ -314,7 +315,7 @@
     titleOverlay.style.opacity = 1;
     setTimeout(() => { titleOverlay.style.opacity = 0; }, 2000);
 
-    // Sync subtitle tracking clock
+    // Sync subtitle tracking clock to the virtual stream's exact position
     clearInterval(subtitleTimer);
     updateSubtitles(playbackSeconds);
     
