@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D.A.P TV 24/7 LIVE</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0b0b0b;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Network Wrapper with Custom Gold Border Styling */
+        #dap-container {
+            position: relative;
+            width: 100%;
+            max-width: 960px;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            border: 3px solid #FFD700;
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
+            margin: 20px 20px 0 20px;
+        }
+
+        /* Fullscreen expansion across all devices (Desktop, Mobile, Tablets) */
+        #dap-container:fullscreen {
+            max-width: 100%;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            border: none;
+            border-radius: 0;
+        }
+        #dap-container:-webkit-full-screen {
+            max-width: 100%;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            border: none;
+            border-radius: 0;
+        }
+        #dap-container:-moz-full-screen {
+            max-width: 100%;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            border: none;
+            border-radius: 0;
+        }
+
+        /* Floating Gold Network Branding Tag */
+        .dap-watermark-tag {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.75);
+            border: 1px solid #FFD700;
+            color: #FFD700;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            border-radius: 4px;
+            z-index: 20;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Embedded Player Frame Wrapper */
+        #player-slot {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #player-slot iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Custom Network Control & Now Playing Bar */
+        .now-playing-bar {
+            width: 100%;
+            max-width: 960px;
+            padding: 15px 20px;
+            background: #141414;
+            border: 2px solid #FFD700;
+            border-top: none;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .info-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .now-playing-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e5e5e5;
+            letter-spacing: 0.5px;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #FFD700;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #ff3b30;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #ff3b30;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Master Control Deck Buttons */
+        .controls-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .dap-btn {
+            background: #000;
+            border: 1px solid #FFD700;
+            color: #FFD700;
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .dap-btn:hover {
+            background: #FFD700;
+            color: #000;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Main Player Frame Container with Gold Branding -->
+    <div id="dap-container">
+        <div class="dap-watermark-tag">D.A.P TV 24/7</div>
+        <div id="player-slot">
+            <!-- Robust Dailymotion Frame Injection Site -->
+        </div>
+    </div>
+
+    <!-- Live Status, Ticker, and Master Custom Control Deck -->
+    <div class="now-playing-bar">
+        <div class="info-group">
+            <div class="now-playing-title" id="track-title">Initializing D.A.P TV 24/7...</div>
+            <div class="live-indicator">
+                <div class="live-dot"></div>
+                24/7 FEED
+            </div>
+        </div>
+        <div class="controls-group">
+            <button class="dap-btn" onclick="playPreviousVideo()">Prev</button>
+            <button class="dap-btn" id="play-pause-btn" onclick="togglePlayPause()">Pause</button>
+            <button class="dap-btn" onclick="playNextVideo()">Next</button>
+            <button class="dap-btn" id="mute-btn" onclick="toggleMute()">Unmute</button>
+            <button class="dap-btn" onclick="adjustVolume(-0.2)">Vol -</button>
+            <button class="dap-btn" onclick="adjustVolume(0.2)">Vol +</button>
+            <button class="dap-btn" onclick="toggleFullScreen()">Fullscreen</button>
+        </div>
+    </div>
+
+    <!-- Dailymotion SDK for Complete Programmatic Playback Control -->
+    <script src="https://controldev.dailymotion.com/player.js"></script>
+
+    <script>
+        // Your Verified Video Catalog Array
+        const videoCatalog = [
+            { title: "Strive", id: "k4ObpDYw3BipbbHWEW2" },
+            { title: "Ink", id: "k1OjGBaUwtLuvrHWG9U" },
+            { title: "The Redwood Massacre", id: "k2btb1TuZW82y7HWJ4u" },
+            { title: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4" },
+            { title: "Half Empty", id: "k3oEnpPscWIfF8HWOdw" },
+            { title: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q" },
+            { title: "Tiger", id: "k5q4oSCRSb8wg7HWT2S" }
+        ];
+
+        let shuffledPlaylist = [];
+        let currentIndex = 0;
+        let playerInstance = null;
+        let isPlaying = true;
+        let isMutedState = true; 
+        let currentVol = 1.0;
+
+        function shuffleArray(array) {
+            let shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function initializePlayer() {
+            shuffledPlaylist = shuffleArray(videoCatalog);
+            currentIndex = 0;
+            renderActiveVideo();
+        }
+
+        function renderActiveVideo() {
+            const currentVideo = shuffledPlaylist[currentIndex];
+            const playerSlot = document.getElementById('player-slot');
+            document.getElementById('track-title').innerText = "NOW STREAMING: " + currentVideo.title;
+
+            playerSlot.innerHTML = '';
+
+            const iframe = document.createElement('iframe');
+            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=1&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
+            iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; web-share');
+            iframe.setAttribute('allowfullscreen', 'true');
+            iframe.setAttribute('webkitallowfullscreen', 'true');
+            iframe.setAttribute('mozallowfullscreen', 'true');
+            iframe.setAttribute('msallowfullscreen', 'true');
+            playerSlot.appendChild(iframe);
+
+            // Bind the Dailymotion SDK controller
+            playerInstance = DM.player(iframe, {
+                video: currentVideo.id
+            });
+
+            // Automatically queue and loop strictly inside your network lineup when any video ends
+            playerInstance.addEventListener('ended', function() {
+                playNextVideo();
+            });
+
+            isMutedState = true;
+            document.getElementById('mute-btn').innerText = "Unmute";
+            isPlaying = true;
+            document.getElementById('play-pause-btn').innerText = "Pause";
+        }
+
+        function playNextVideo() {
+            currentIndex++;
+            if (currentIndex >= shuffledPlaylist.length) {
+                shuffledPlaylist = shuffleArray(videoCatalog);
+                currentIndex = 0;
+            }
+            renderActiveVideo();
+        }
+
+        function playPreviousVideo() {
+            currentIndex--;
+            if (currentIndex < 0) {
+                currentIndex = shuffledPlaylist.length - 1;
+            }
+            renderActiveVideo();
+        }
+
+        function togglePlayPause() {
+            if (!playerInstance) return;
+            if (isPlaying) {
+                playerInstance.pause();
+                isPlaying = false;
+                document.getElementById('play-pause-btn').innerText = "Play";
+            } else {
+                playerInstance.play();
+                isPlaying = true;
+                document.getElementById('play-pause-btn').innerText = "Pause";
+            }
+        }
+
+        function toggleMute() {
+            if (!playerInstance) return;
+            isMutedState = !isMutedState;
+            playerInstance.setMuted(isMutedState);
+            document.getElementById('mute-btn').innerText = isMutedState ? "Unmute" : "Mute";
+        }
+
+        function adjustVolume(amount) {
+            if (!playerInstance) return;
+            currentVol = Math.max(0, Math.min(1, currentVol + amount));
+            playerInstance.setVolume(currentVol);
+            
+            if (currentVol > 0 && isMutedState) {
+                isMutedState = false;
+                playerInstance.setMuted(false);
+                document.getElementById('mute-btn').innerText = "Mute";
+            }
+        }
+
+        function toggleFullScreen() {
+            const container = document.getElementById('dap-container');
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) {
+                    container.webkitRequestFullscreen();
+                } else if (container.mozRequestFullScreen) {
+                    container.mozRequestFullScreen();
+                } else if (container.msRequestFullscreen) {
+                    container.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        }
+
+        window.onload = function() {
+            initializePlayer();
+        };
+    </script>
+</body>
+</html>
