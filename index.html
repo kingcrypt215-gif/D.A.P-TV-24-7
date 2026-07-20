@@ -27,23 +27,34 @@
         font-size: clamp(14px, 5vw, 28px);
     }
     
+    /* Subtitle Display Overlay Box */
+    #subtitle-overlay {
+      position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%);
+      z-index: 2147483646; color: #fff; background: rgba(0,0,0,0.75);
+      padding: 6px 12px; font-size: clamp(12px, 2.5vw, 18px); font-weight: bold;
+      text-align: center; max-width: 85%; border-radius: 4px; display: none;
+      pointer-events: none; text-shadow: 1px 1px 2px #000;
+    }
+    .video-container.cc-active #subtitle-overlay { display: block; }
+    
     /* Transient Fullscreen Navigation & Controls Overlay */
     .fs-nav { 
-        position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); 
-        z-index: 2147483647; display: flex; gap: 15px; align-items: center;
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); 
+        z-index: 2147483647; display: flex; gap: 10px; align-items: center;
         opacity: 0; visibility: hidden; transition: opacity 0.4s ease-in-out, visibility 0.4s ease-in-out; 
     }
     .video-container.active-user .fs-nav { opacity: 1; visibility: visible; }
     
-    .fs-btn { background: #FFD700 !important; color: #000 !important; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: clamp(12px, 2vw, 16px); box-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+    .fs-btn { background: #FFD700 !important; color: #000 !important; border: none; padding: 8px 14px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: clamp(10px, 1.8vw, 14px); box-shadow: 0 2px 8px rgba(0,0,0,0.8); }
     .fs-btn:hover { background: #fff !important; }
 
     .nav-box { display: flex; justify-content: space-between; padding: 10px; }
     .nav-btn { background: #FFD700; color: #000; border: none; padding: 12px 24px; cursor: pointer; font-weight: bold; width: 48%; border-radius: 4px; }
     
-    /* Custom Fullscreen Button */
-    #fs-toggle-btn { background: #333; color: #FFD700; border: 1px solid #FFD700; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; margin: 5px auto; display: block; font-size: 14px; }
-    #fs-toggle-btn:hover { background: #FFD700; color: #000; }
+    /* Custom Control Toggles Panel */
+    .controls-panel { display: flex; justify-content: center; gap: 10px; margin: 5px auto; }
+    .ctrl-action-btn { background: #333; color: #FFD700; border: 1px solid #FFD700; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 14px; }
+    .ctrl-action-btn:hover { background: #FFD700; color: #000; }
 
     /* Invisible Shield Overlay to completely intercept clicks and prevent Dailymotion overlays from triggering */
     #click-shield {
@@ -131,12 +142,14 @@
 <div id="player-wrapper" class="video-container">
   <div id="category-badge">D.A.P TV 24/7</div>
   <div id="fs-channel-title">Stream Name</div>
+  <div id="subtitle-overlay"></div>
   <div id="click-shield"></div>
   
-  <!-- Transient Fullscreen Navigation & Exit Box -->
+  <!-- Transient Fullscreen Navigation, CC & Exit Box -->
   <div class="fs-nav">
       <button class="fs-btn" onclick="nav(-1)">PREV</button>
-      <button class="fs-btn" onclick="toggleFullScreen()">EXIT FULLSCREEN</button>
+      <button class="fs-btn" id="fs-cc-toggle-btn" onclick="toggleCC()">CC: OFF</button>
+      <button class="fs-btn" onclick="toggleFullScreen()">EXIT</button>
       <button class="fs-btn" onclick="nav(1)">NEXT</button>
   </div>
 
@@ -145,7 +158,10 @@
   </div>
 </div>
 
-<button id="fs-toggle-btn" onclick="toggleFullScreen()">FULLSCREEN</button>
+<div class="controls-panel">
+  <button id="fs-toggle-btn" class="ctrl-action-btn" onclick="toggleFullScreen()">FULLSCREEN</button>
+  <button id="main-cc-toggle-btn" class="ctrl-action-btn" onclick="toggleCC()">CC: OFF</button>
+</div>
 
 <div class="nav-box">
   <button class="nav-btn" onclick="nav(-1)">PREVIOUS</button>
@@ -168,9 +184,47 @@
   const display = document.getElementById('channel-display');
   const nowPlayingLabel = document.getElementById('now-playing-label');
   const titleOverlay = document.getElementById('fs-channel-title');
+  const subtitleOverlay = document.getElementById('subtitle-overlay');
   const iframe = document.getElementById('dm-player');
   const wrapper = document.getElementById('player-wrapper');
+  const mainCcBtn = document.getElementById('main-cc-toggle-btn');
+  const fsCcBtn = document.getElementById('fs-cc-toggle-btn');
   
+  // Fully linked subtitle datasets mapped directly to specific movie IDs
+  const subtitlesData = {
+    // Nasty Old People (Fully linked with English translated script cues from your file)
+    "k2onvpqu5aRLmUHWMR4": [
+      { start: 11, end: 20, text: "Danish text by Michael Wahlstrøm" },
+      { start: 89, end: 91, text: "- Isn't it beautiful?\n- What the hell are you doing at home?" },
+      { start: 96, end: 101, text: "Have you ever seen anything so luxurious?" },
+      { start: 111, end: 114, text: "My name is Mette." },
+      { start: 116, end: 119, text: "I am nineteen." },
+      { start: 126, end: 131, text: "When I was thirteen, I became a Nazi[span_0](start_span)[span_0](end_span)." },
+      { start: 139, end: 143, text: "Everyone loves me." },
+      { start: 144, end: 150, text: "Because they can come from both sides, we'll position the two of us here - and here." },
+      { start: 152, end: 155, text: "So it goes without saying they will attack from behind." },
+      { start: 156, end: 159, text: "The people I take care of..." },
+      { start: 162, end: 168, text: "Here! Highest risk of attack, here is where we are most vulnerable." },
+      { start: 171, end: 174, text: "The ones I have trouble with." },
+      { start: 174, end: 177, text: "Perhaps Mette would like to give a speech instead?" },
+      { start: 177, end: 179, text: "Of course I want to give a speech." },
+      { start: 180, end: 183, text: "They impress me." },
+      { start: 190, end: 192, text: "But most of all..." },
+      { start: 192, end: 196, text: "...Colleagues in home care." },
+      { start: 198, end: 202, text: "I happily take care of old people that no one else bothers to help." }
+    ],
+    // Placeholders for other titles so they possess universal CC capability support when scripts are provided
+    "k4ObpDYw3BipbbHWEW2": [], // Strive
+    "k1OjGBaUwtLuvrHWG9U": [], // Ink
+    "k2btb1TuZW82y7HWJ4u": [], // THE REDWOOD MASSACRE
+    "k3oEnpPscWIfF8HWOdw": [], // Half Empty
+    "k7iwKjmDYVxYRSHWR4q": [], // Artifacts Of Idealism
+    "k5q4oSCRSb8wg7HWT2S": []  // Tiger
+  };
+
+  let ccEnabled = true; // Starts with CC turned on by default for the lineup
+  let subtitleTimer = null;
+
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -199,6 +253,42 @@
     return currentPosition;
   }
 
+  function applyCCUIState() {
+    let btnText = ccEnabled ? "CC: ON" : "CC: OFF";
+    mainCcBtn.innerText = btnText;
+    fsCcBtn.innerText = btnText;
+    
+    if (ccEnabled) {
+      wrapper.classList.add('cc-active');
+    } else {
+      wrapper.classList.remove('cc-active');
+      subtitleOverlay.innerText = "";
+    }
+  }
+
+  function toggleCC() {
+    ccEnabled = !ccEnabled;
+    applyCCUIState();
+  }
+
+  function updateSubtitles(currentTime) {
+    if (!ccEnabled) return;
+    const station = stationData[currentIndex];
+    const cues = subtitlesData[station.id];
+    
+    if (!cues || cues.length === 0) {
+      subtitleOverlay.innerText = "";
+      return;
+    }
+
+    let activeCue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
+    if (activeCue) {
+      subtitleOverlay.innerText = activeCue.text;
+    } else {
+      subtitleOverlay.innerText = "";
+    }
+  }
+
   function playStation(index, customOffset = null) {
     currentIndex = index;
     const station = stationData[index];
@@ -219,6 +309,16 @@
     titleOverlay.innerText = (index + 1) + ". " + station.name;
     titleOverlay.style.opacity = 1;
     setTimeout(() => { titleOverlay.style.opacity = 0; }, 2000);
+
+    // Sync subtitle tracking clock to current stream position
+    clearInterval(subtitleTimer);
+    let playbackSeconds = startSeconds;
+    updateSubtitles(playbackSeconds);
+    
+    subtitleTimer = setInterval(() => {
+      playbackSeconds++;
+      updateSubtitles(playbackSeconds);
+    }, 1000);
   }
 
   function nav(direction) {
@@ -252,8 +352,8 @@
     } else {
       if (document.exitFullscreen) {
         document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
+      } else if (wrapper.webkitExitFullscreen) {
+        wrapper.webkitExitFullscreen();
       }
     }
   }
@@ -309,6 +409,8 @@
     initialTime = getVirtualStationTime(initialIndex);
   }
 
+  // Initialize CC state visually on boot
+  applyCCUIState();
   playStation(initialIndex, initialTime);
 </script>
 </body>
