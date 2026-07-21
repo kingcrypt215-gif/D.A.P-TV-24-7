@@ -235,10 +235,6 @@
     ]
   };
 
-  let ccEnabled = true; // Starts ON by default
-  let playbackSeconds = 0;
-  let subtitleTimer = null;
-
   // Master Network Catalog: Add your future movies and shows directly here
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -253,24 +249,23 @@
   let currentIndex = 0;
   const STATION_EPOCH_KEY = 'dap_247_station_epoch';
 
-  // Assigns each channel a unique pseudo-random catalog index so every channel plays something different simultaneously
+  // Total available channels on your network dial (set to match your full catalog count)
+  const TOTAL_CHANNELS = stationData.length;
+
   function getAssignedCatalogIndex(channelIndex) {
     let channelAssignments = JSON.parse(localStorage.getItem('dap_247_channel_catalog_map')) || {};
     let now = Math.floor(Date.now() / 1000);
     
-    // Check if channel already has an active movie item assigned
     if (channelAssignments[channelIndex]) {
       let assignment = channelAssignments[channelIndex];
       let targetMovie = stationData[assignment.catalogIdx];
       let elapsed = now - assignment.startTime;
       
-      // If the movie's duration has expired, cleanly transition this channel to the next random item from your list
       if (elapsed < targetMovie.duration) {
         return assignment.catalogIdx;
       }
     }
     
-    // Pick a new random catalog index from your list (ensuring it rotates to something different)
     let newIdx = Math.floor(Math.random() * stationData.length);
     if (channelAssignments[channelIndex] && channelAssignments[channelIndex].catalogIdx === newIdx) {
       newIdx = (newIdx + 1) % stationData.length;
@@ -357,7 +352,6 @@
     let cleanUrl = `${station.embed}&start=${startSeconds}`;
     iframe.src = cleanUrl;
     
-    // Clean channel display without any numbers
     display.innerText = station.name;
     nowPlayingLabel.innerText = "Now Playing: " + station.name;
     
@@ -376,7 +370,6 @@
     
     subtitleTimer = setInterval(() => {
       playbackSeconds++;
-      // Check if scheduled item finished; if so, seamlessly roll over to next item from your catalog list
       let currentActiveCatalog = getAssignedCatalogIndex(currentIndex);
       if (currentActiveCatalog !== catalogIdx) {
         playStation(currentIndex);
@@ -387,7 +380,7 @@
   }
 
   function nav(direction) {
-    let nextIdx = (currentIndex + direction + stationData.length) % stationData.length;
+    let nextIdx = (currentIndex + direction + TOTAL_CHANNELS) % TOTAL_CHANNELS;
     let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
     let stationHistory = userHistory[nextIdx];
     let now = Date.now();
@@ -472,7 +465,7 @@
     let fullUserHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
     initialTime = fullUserHistory[initialIndex] ? fullUserHistory[initialIndex].time : null;
   } else {
-    initialIndex = Math.floor(Math.random() * stationData.length);
+    initialIndex = Math.floor(Math.random() * TOTAL_CHANNELS);
     let catalogIdx = getAssignedCatalogIndex(initialIndex);
     initialTime = getVirtualStationTime(initialIndex, catalogIdx);
   }
