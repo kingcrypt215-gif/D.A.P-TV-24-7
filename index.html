@@ -27,17 +27,6 @@
         font-size: clamp(14px, 5vw, 28px);
     }
     
-    /* Subtitle Display Overlay (Clean gold text with no background box) */
-    #subtitle-overlay {
-      position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%);
-      z-index: 2147483646; color: #FFD700; background: transparent;
-      padding: 0; font-size: clamp(14px, 3vw, 22px); font-weight: bold;
-      text-align: center; max-width: 90%; display: none;
-      pointer-events: none; text-shadow: 2px 2px 6px #000, 0 0 2px #000; line-height: 1.4;
-      white-space: pre-line;
-    }
-    .video-container.cc-active #subtitle-overlay { display: block; }
-    
     /* Transient Fullscreen Navigation & Controls Overlay */
     .fs-nav { 
         position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); 
@@ -143,13 +132,11 @@
 <div id="player-wrapper" class="video-container">
   <div id="category-badge">D.A.P TV 24/7</div>
   <div id="fs-channel-title">Stream Name</div>
-  <div id="subtitle-overlay"></div>
   <div id="click-shield"></div>
   
-  <!-- Transient Fullscreen Navigation, CC & Exit Box -->
+  <!-- Transient Fullscreen Navigation & Exit Box (CC removed) -->
   <div class="fs-nav">
       <button class="fs-btn" onclick="nav(-1)">PREV</button>
-      <button class="fs-btn" id="fs-cc-toggle-btn" onclick="toggleCC()">CC: ON</button>
       <button class="fs-btn" onclick="toggleFullScreen()">EXIT</button>
       <button class="fs-btn" onclick="nav(1)">NEXT</button>
   </div>
@@ -161,7 +148,6 @@
 
 <div class="controls-panel">
   <button id="fs-toggle-btn" class="ctrl-action-btn" onclick="toggleFullScreen()">FULLSCREEN</button>
-  <button id="main-cc-toggle-btn" class="ctrl-action-btn" onclick="toggleCC()">CC: ON</button>
 </div>
 
 <div class="nav-box">
@@ -185,39 +171,11 @@
   const display = document.getElementById('channel-display');
   const nowPlayingLabel = document.getElementById('now-playing-label');
   const titleOverlay = document.getElementById('fs-channel-title');
-  const subtitleOverlay = document.getElementById('subtitle-overlay');
   const iframe = document.getElementById('dm-player');
   const wrapper = document.getElementById('player-wrapper');
-  const mainCcBtn = document.getElementById('main-cc-toggle-btn');
-  const fsCcBtn = document.getElementById('fs-cc-toggle-btn');
-  
-  // Linked Subtitles Database for Nasty Old People mapped directly to its Dailymotion Video ID
-  const subtitlesData = {
-    "k2onvpqu5aRLmUHWMR4": [
-      { start: 11, end: 20, text: "Danish text by Michael Wahlstrøm" },
-      { start: 89, end: 91, text: "- Isn't it beautiful?\n- What the hell are you doing at home?" },
-      { start: 96, end: 101, text: "Have you ever seen anything so luxurious?" },
-      { start: 111, end: 114, text: "My name is Mette." },
-      { start: 116, end: 119, text: "I am nineteen." },
-      { start: 126, end: 131, text: "When I was thirteen, I became a Nazi." },
-      { start: 139, end: 143, text: "Everyone loves me." },
-      { start: 144, end: 150, text: "Because they can come from both sides, we'll position the two of us here - and here." },
-      { start: 152, end: 155, text: "So it goes without saying they will attack from behind." },
-      { start: 156, end: 159, text: "The people I take care of..." },
-      { start: 162, end: 168, text: "Here! Highest risk of attack, here is where we are most vulnerable." },
-      { start: 171, end: 174, text: "The ones I have trouble with." },
-      { start: 174, end: 177, text: "Perhaps Mette would like to give a speech instead?" },
-      { start: 177, end: 179, text: "Of course I want to give a speech." },
-      { start: 180, end: 183, text: "They impress me." },
-      { start: 190, end: 192, text: "But most of all..." },
-      { start: 192, end: 196, text: "...Colleagues in home care." },
-      { start: 198, end: 202, text: "I happily take care of old people that no one else bothers to help." }
-    ]
-  };
 
-  let ccEnabled = true; // Starts ON by default
   let playbackSeconds = 0;
-  let subtitleTimer = null;
+  let timerInterval = null;
 
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -247,51 +205,6 @@
     return currentPosition;
   }
 
-  function applyCCUIState() {
-    let btnText = ccEnabled ? "CC: ON" : "CC: OFF";
-    mainCcBtn.innerText = btnText;
-    fsCcBtn.innerText = btnText;
-    
-    if (ccEnabled) {
-      wrapper.classList.add('cc-active');
-    } else {
-      wrapper.classList.remove('cc-active');
-      subtitleOverlay.innerText = "";
-    }
-  }
-
-  function toggleCC() {
-    ccEnabled = !ccEnabled;
-    applyCCUIState();
-    if (ccEnabled) {
-      updateSubtitles(playbackSeconds);
-    } else {
-      subtitleOverlay.innerText = "";
-    }
-  }
-
-  function updateSubtitles(currentTime) {
-    if (!ccEnabled) {
-      subtitleOverlay.innerText = "";
-      return;
-    }
-    
-    const station = stationData[currentIndex];
-    const cues = subtitlesData[station.id];
-    
-    if (!cues || cues.length === 0) {
-      subtitleOverlay.innerText = "";
-      return;
-    }
-
-    let activeCue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
-    if (activeCue) {
-      subtitleOverlay.innerText = activeCue.text;
-    } else {
-      subtitleOverlay.innerText = "";
-    }
-  }
-
   function playStation(index, customOffset = null) {
     currentIndex = index;
     const station = stationData[index];
@@ -302,7 +215,8 @@
     let cleanUrl = `${station.embed}&start=${startSeconds}`;
     iframe.src = cleanUrl;
     
-    display.innerText = (index + 1) + ". " + station.name;
+    // Channel numbers removed from displays and overlays
+    display.innerText = station.name;
     nowPlayingLabel.innerText = "Now Playing: " + station.name;
     
     let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
@@ -311,17 +225,36 @@
     localStorage.setItem('dap_247_last_channel', index);
     localStorage.setItem('dap_247_last_active', Date.now());
     
-    titleOverlay.innerText = (index + 1) + ". " + station.name;
+    titleOverlay.innerText = station.name;
     titleOverlay.style.opacity = 1;
     setTimeout(() => { titleOverlay.style.opacity = 0; }, 2000);
 
-    clearInterval(subtitleTimer);
-    updateSubtitles(playbackSeconds);
+    clearInterval(timerInterval);
     
-    subtitleTimer = setInterval(() => {
+    // Increment playback time and check if movie reached its duration limit
+    timerInterval = setInterval(() => {
       playbackSeconds++;
-      updateSubtitles(playbackSeconds);
+      if (playbackSeconds >= station.duration) {
+        clearInterval(timerInterval);
+        playRandomMovieOnCurrentChannel();
+      }
     }, 1000);
+  }
+
+  // Plays a different random movie/station out of the list when one finishes
+  function playRandomMovieOnCurrentChannel() {
+    let availableIndices = [];
+    for (let i = 0; i < stationData.length; i++) {
+      if (i !== currentIndex) availableIndices.push(i);
+    }
+    let randomIdx = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+    
+    // Reset epoch for the newly chosen target so it starts from the beginning (0 seconds)
+    let epochs = JSON.parse(localStorage.getItem(STATION_EPOCH_KEY)) || {};
+    epochs[randomIdx] = { startTime: Math.floor(Date.now() / 1000) };
+    localStorage.setItem(STATION_EPOCH_KEY, JSON.stringify(epochs));
+
+    playStation(randomIdx, 0);
   }
 
   function nav(direction) {
@@ -412,7 +345,6 @@
     initialTime = getVirtualStationTime(initialIndex);
   }
 
-  applyCCUIState();
   playStation(initialIndex, initialTime);
 </script>
 </body>
