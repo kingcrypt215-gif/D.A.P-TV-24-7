@@ -235,7 +235,7 @@
     ]
   };
 
-  // Master Network Catalog: Updated with Pioneer One Ep.1 and Ep.2 added securely
+  // Master Network Catalog: All titles including The Redwood Massacre
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -252,13 +252,18 @@
   const GLOBAL_EPOCH_KEY = 'dap_247_global_broadcast_epoch';
   const TOTAL_CHANNELS = stationData.length;
 
+  // Clear stale cached epoch data so the browser forces a clean refresh of the full index list
+  if (!localStorage.getItem('dap_247_catalog_fix_v2')) {
+    localStorage.removeItem(GLOBAL_EPOCH_KEY);
+    localStorage.setItem('dap_247_catalog_fix_v2', 'true');
+  }
+
   // Continuous 24/7 Global Timeline Engine: Keeps a permanent, un-interruptible master clock running forward like live TV.
   function getLiveVirtualTimeline(channelIndex) {
     let masterEpochs = JSON.parse(localStorage.getItem(GLOBAL_EPOCH_KEY)) || {};
     let now = Math.floor(Date.now() / 1000);
 
     if (!masterEpochs[channelIndex]) {
-      // Initialize an independent broadcast timeline start for this channel
       masterEpochs[channelIndex] = {
         catalogIdx: channelIndex % stationData.length,
         startTime: now
@@ -267,10 +272,13 @@
     }
 
     let channelProg = masterEpochs[channelIndex];
+    if (channelProg.catalogIdx >= stationData.length) {
+      channelProg.catalogIdx = 0;
+    }
+    
     let currentStation = stationData[channelProg.catalogIdx];
     let elapsedTotal = now - channelProg.startTime;
 
-    // Automatically advance through the catalog sequence infinitely as time marches forward
     while (elapsedTotal >= currentStation.duration) {
       elapsedTotal -= currentStation.duration;
       channelProg.catalogIdx = (channelProg.catalogIdx + 1) % stationData.length;
@@ -362,7 +370,6 @@
     subtitleTimer = setInterval(() => {
       playbackSeconds++;
       
-      // If the broadcast timeline hits the duration limit, instantly sync forward to the next scheduled title seamlessly
       let checkState = getLiveVirtualTimeline(currentIndex);
       if (checkState.catalogIdx !== currentActiveCatalogIdx) {
         playStation(currentIndex);
@@ -374,7 +381,7 @@
   }
 
   function nav(direction) {
-    let nextIdx = (currentIndex + direction + TOTAL_CHANNELS) % TOTAL_CHANNELS;
+    let nextIdx = (currentIndex + direction + TOTAL_CHANNELS) % TOTAL_CHANNels;
     playStation(nextIdx);
   }
 
@@ -427,7 +434,6 @@
   wrapper.addEventListener('mousedown', triggerActivity);
   wrapper.addEventListener('touchstart', triggerActivity, { passive: true });
 
-  // On page load or refresh, instantly tune into the active live broadcast position across the 24/7 schedule
   const savedChannel = localStorage.getItem('dap_247_last_channel');
   let initialIndex = savedChannel !== null ? parseInt(savedChannel) : Math.floor(Math.random() * TOTAL_CHANNELS);
 
