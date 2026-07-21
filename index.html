@@ -138,7 +138,7 @@
 <body>
 
 <div id="brand">D.A.P TV 24/7</div>
-<div id="channel-display">Select a Stream</div>
+<div id="channel-display">Loading Stream...</div>
 
 <div id="player-wrapper" class="video-container">
   <div id="category-badge">D.A.P TV 24/7</div>
@@ -248,8 +248,6 @@
 
   let currentIndex = 0;
   const STATION_EPOCH_KEY = 'dap_247_station_epoch';
-
-  // Total available channels on your network dial (set to match your full catalog count)
   const TOTAL_CHANNELS = stationData.length;
 
   function getAssignedCatalogIndex(channelIndex) {
@@ -470,6 +468,7 @@
     initialTime = getVirtualStationTime(initialIndex, catalogIdx);
   }
 
+  let ccEnabled = true;
   applyCCUIState();
   playStation(initialIndex, initialTime);
 </script>
