@@ -191,7 +191,7 @@
   const mainCcBtn = document.getElementById('main-cc-toggle-btn');
   const fsCcBtn = document.getElementById('fs-cc-toggle-btn');
   
-  // Complete Subtitles Database mapped directly to Nasty Old People's Video ID
+  // Complete Subtitles Database mapped directly to Nasty Old People's Video ID[span_0](start_span)[span_0](end_span)
   const subtitlesData = {
     "k2onvpqu5aRLmUHWMR4": [
       { start: 11, end: 20, text: "Danish translation by Michael Wahlstrøm" },
@@ -239,6 +239,7 @@
   let playbackSeconds = 0;
   let subtitleTimer = null;
 
+  // Master Network Catalog: Add your future movies and shows directly here
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -252,17 +253,49 @@
   let currentIndex = 0;
   const STATION_EPOCH_KEY = 'dap_247_station_epoch';
 
-  function getVirtualStationTime(index) {
+  // Assigns each channel a unique pseudo-random catalog index so every channel plays something different simultaneously
+  function getAssignedCatalogIndex(channelIndex) {
+    let channelAssignments = JSON.parse(localStorage.getItem('dap_247_channel_catalog_map')) || {};
+    let now = Math.floor(Date.now() / 1000);
+    
+    // Check if channel already has an active movie item assigned
+    if (channelAssignments[channelIndex]) {
+      let assignment = channelAssignments[channelIndex];
+      let targetMovie = stationData[assignment.catalogIdx];
+      let elapsed = now - assignment.startTime;
+      
+      // If the movie's duration has expired, cleanly transition this channel to the next random item from your list
+      if (elapsed < targetMovie.duration) {
+        return assignment.catalogIdx;
+      }
+    }
+    
+    // Pick a new random catalog index from your list (ensuring it rotates to something different)
+    let newIdx = Math.floor(Math.random() * stationData.length);
+    if (channelAssignments[channelIndex] && channelAssignments[channelIndex].catalogIdx === newIdx) {
+      newIdx = (newIdx + 1) % stationData.length;
+    }
+    
+    channelAssignments[channelIndex] = {
+      catalogIdx: newIdx,
+      startTime: now
+    };
+    localStorage.setItem('dap_247_channel_catalog_map', JSON.stringify(channelAssignments));
+    return newIdx;
+  }
+
+  function getVirtualStationTime(channelIndex, catalogIdx) {
     let epochs = JSON.parse(localStorage.getItem(STATION_EPOCH_KEY)) || {};
     let now = Math.floor(Date.now() / 1000);
-    const station = stationData[index];
+    const station = stationData[catalogIdx];
 
-    if (!epochs[index]) {
-      epochs[index] = { startTime: now - Math.floor(Math.random() * 1200) };
+    let epochKey = channelIndex + "_" + catalogIdx;
+    if (!epochs[epochKey]) {
+      epochs[epochKey] = { startTime: now - Math.floor(Math.random() * 600) };
       localStorage.setItem(STATION_EPOCH_KEY, JSON.stringify(epochs));
     }
 
-    let elapsed = now - epochs[index].startTime;
+    let elapsed = now - epochs[epochKey].startTime;
     let currentPosition = elapsed % station.duration;
     return currentPosition;
   }
@@ -296,7 +329,8 @@
       return;
     }
     
-    const station = stationData[currentIndex];
+    let activeCatalogIdx = getAssignedCatalogIndex(currentIndex);
+    const station = stationData[activeCatalogIdx];
     const cues = subtitlesData[station.id];
     
     if (!cues || cues.length === 0) {
@@ -312,26 +346,28 @@
     }
   }
 
-  function playStation(index, customOffset = null) {
-    currentIndex = index;
-    const station = stationData[index];
+  function playStation(channelIndex, customOffset = null) {
+    currentIndex = channelIndex;
+    let catalogIdx = getAssignedCatalogIndex(channelIndex);
+    const station = stationData[catalogIdx];
     
-    let startSeconds = customOffset !== null ? customOffset : getVirtualStationTime(index);
+    let startSeconds = customOffset !== null ? customOffset : getVirtualStationTime(channelIndex, catalogIdx);
     playbackSeconds = startSeconds; 
     
     let cleanUrl = `${station.embed}&start=${startSeconds}`;
     iframe.src = cleanUrl;
     
-    display.innerText = (index + 1) + ". " + station.name;
+    // Clean channel display without any numbers
+    display.innerText = station.name;
     nowPlayingLabel.innerText = "Now Playing: " + station.name;
     
     let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
-    userHistory[index] = { time: startSeconds, updated: Date.now() };
+    userHistory[channelIndex] = { catalogIdx: catalogIdx, time: startSeconds, updated: Date.now() };
     localStorage.setItem('dap_247_user_history', JSON.stringify(userHistory));
-    localStorage.setItem('dap_247_last_channel', index);
+    localStorage.setItem('dap_247_last_channel', channelIndex);
     localStorage.setItem('dap_247_last_active', Date.now());
     
-    titleOverlay.innerText = (index + 1) + ". " + station.name;
+    titleOverlay.innerText = station.name;
     titleOverlay.style.opacity = 1;
     setTimeout(() => { titleOverlay.style.opacity = 0; }, 2000);
 
@@ -340,6 +376,12 @@
     
     subtitleTimer = setInterval(() => {
       playbackSeconds++;
+      // Check if scheduled item finished; if so, seamlessly roll over to next item from your catalog list
+      let currentActiveCatalog = getAssignedCatalogIndex(currentIndex);
+      if (currentActiveCatalog !== catalogIdx) {
+        playStation(currentIndex);
+        return;
+      }
       updateSubtitles(playbackSeconds);
     }, 1000);
   }
@@ -351,10 +393,12 @@
     let now = Date.now();
     
     let targetTime = null;
-    if (stationHistory && (now - stationHistory.updated < 60 * 60 * 1000)) {
+    let catalogIdx = getAssignedCatalogIndex(nextIdx);
+    
+    if (stationHistory && stationHistory.catalogIdx === catalogIdx && (now - stationHistory.updated < 60 * 60 * 1000)) {
       targetTime = stationHistory.time;
     } else {
-      targetTime = getVirtualStationTime(nextIdx);
+      targetTime = getVirtualStationTime(nextIdx, catalogIdx);
     }
     
     playStation(nextIdx, targetTime);
@@ -429,7 +473,8 @@
     initialTime = fullUserHistory[initialIndex] ? fullUserHistory[initialIndex].time : null;
   } else {
     initialIndex = Math.floor(Math.random() * stationData.length);
-    initialTime = getVirtualStationTime(initialIndex);
+    let catalogIdx = getAssignedCatalogIndex(initialIndex);
+    initialTime = getVirtualStationTime(initialIndex, catalogIdx);
   }
 
   applyCCUIState();
