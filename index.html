@@ -191,7 +191,7 @@
   const mainCcBtn = document.getElementById('main-cc-toggle-btn');
   const fsCcBtn = document.getElementById('fs-cc-toggle-btn');
   
-  // Complete Subtitles Database mapped directly to Nasty Old People's Video ID[span_0](start_span)[span_0](end_span)
+  // Complete Subtitles Database mapped directly to Nasty Old People's Video ID
   const subtitlesData = {
     "k2onvpqu5aRLmUHWMR4": [
       { start: 11, end: 20, text: "Danish translation by Michael Wahlstrøm" },
@@ -235,7 +235,7 @@
     ]
   };
 
-  // Master Network Catalog: Add your future movies and shows directly here
+  // Master Network Catalog: Exactly 9 unique titles with the stable 24/7 rotation structure preserved
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -243,11 +243,13 @@
     { name: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Half Empty", id: "k3oEnpPscWIfF8HWOdw", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "Tiger", id: "k5q4oSCRSb8wg7HWT2S", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" }
+    { name: "Tiger", id: "k5q4oSCRSb8wg7HWT2S", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Pioneer One: Ep. 1", id: "k3yLmn40bkRQJtHYsZE", duration: 2400, embed: "https://www.dailymotion.com/embed/video/k3yLmn40bkRQJtHYsZE?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Pioneer One: Ep. 2", id: "k2bedAe74dcpEQHYtX8", duration: 2400, embed: "https://www.dailymotion.com/embed/video/k2bedAe74dcpEQHYtX8?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" }
   ];
 
   let currentIndex = 0;
-  const GLOBAL_EPOCH_KEY = 'dap_247_global_broadcast_epoch';
+  const GLOBAL_EPOCH_KEY = 'dap_247_global_broadcast_epoch_v9';
   const TOTAL_CHANNELS = stationData.length;
 
   // Continuous 24/7 Global Timeline Engine: Keeps a permanent, un-interruptible master clock running forward like live TV.
