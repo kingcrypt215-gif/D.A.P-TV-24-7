@@ -27,6 +27,17 @@
         font-size: clamp(14px, 5vw, 28px);
     }
     
+    /* Subtitle Display Overlay (Clean gold text with no background box) */
+    #subtitle-overlay {
+      position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%);
+      z-index: 2147483646; color: #FFD700; background: transparent;
+      padding: 0; font-size: clamp(14px, 3vw, 22px); font-weight: bold;
+      text-align: center; max-width: 90%; display: none;
+      pointer-events: none; text-shadow: 2px 2px 6px #000, 0 0 2px #000; line-height: 1.4;
+      white-space: pre-line;
+    }
+    .video-container.cc-active #subtitle-overlay { display: block; }
+    
     /* Transient Fullscreen Navigation & Controls Overlay */
     .fs-nav { 
         position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); 
@@ -127,21 +138,22 @@
 <body>
 
 <div id="brand">D.A.P TV 24/7</div>
-<div id="channel-display">Select a Stream</div>
+<div id="channel-display">Loading Stream...</div>
 
 <div id="player-wrapper" class="video-container">
   <div id="category-badge">D.A.P TV 24/7</div>
   <div id="fs-channel-title">Stream Name</div>
+  <div id="subtitle-overlay"></div>
   <div id="click-shield"></div>
   
-  <!-- Transient Fullscreen Navigation & Exit Box -->
+  <!-- Transient Fullscreen Navigation, CC & Exit Box -->
   <div class="fs-nav">
       <button class="fs-btn" onclick="nav(-1)">PREV</button>
+      <button class="fs-btn" id="fs-cc-toggle-btn" onclick="toggleCC()">CC: ON</button>
       <button class="fs-btn" onclick="toggleFullScreen()">EXIT</button>
       <button class="fs-btn" onclick="nav(1)">NEXT</button>
   </div>
 
-  <!-- Restored Dailymotion Iframe Player Container -->
   <div id="player-container" style="width:100%; height:100%; position:relative;">
     <iframe id="dm-player" frameborder="0" width="100%" height="100%" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%;"></iframe>
   </div>
@@ -149,6 +161,7 @@
 
 <div class="controls-panel">
   <button id="fs-toggle-btn" class="ctrl-action-btn" onclick="toggleFullScreen()">FULLSCREEN</button>
+  <button id="main-cc-toggle-btn" class="ctrl-action-btn" onclick="toggleCC()">CC: ON</button>
 </div>
 
 <div class="nav-box">
@@ -172,13 +185,57 @@
   const display = document.getElementById('channel-display');
   const nowPlayingLabel = document.getElementById('now-playing-label');
   const titleOverlay = document.getElementById('fs-channel-title');
+  const subtitleOverlay = document.getElementById('subtitle-overlay');
   const iframe = document.getElementById('dm-player');
   const wrapper = document.getElementById('player-wrapper');
+  const mainCcBtn = document.getElementById('main-cc-toggle-btn');
+  const fsCcBtn = document.getElementById('fs-cc-toggle-btn');
+  
+  // Complete Subtitles Database mapped directly to Nasty Old People's Video ID[span_0](start_span)[span_0](end_span)
+  const subtitlesData = {
+    "k2onvpqu5aRLmUHWMR4": [
+      { start: 11, end: 20, text: "Danish translation by Michael Wahlstrøm" },
+      { start: 89, end: 91, text: "- Isn't it beautiful?\n- What the hell are you doing home?" },
+      { start: 96, end: 101, text: "Have you ever seen anything so luxurious?" },
+      { start: 111, end: 114, text: "My name is Mette" },
+      { start: 116, end: 119, text: "I am nineteen" },
+      { start: 126, end: 131, text: "When I was thirteen, I became a Nazi" },
+      { start: 139, end: 143, text: "Everyone loves me" },
+      { start: 144, end: 150, text: "Because they can come from both sides,\nso we'll position two here - and here" },
+      { start: 152, end: 155, text: "So it goes without saying that they will attack from behind" },
+      { start: 156, end: 159, text: "The people I take care of..." },
+      { start: 162, end: 168, text: "Here! Highest risk of attack,\nhere we are most vulnerable" },
+      { start: 171, end: 174, text: "The ones I have trouble with" },
+      { start: 174, end: 177, text: "Maybe Mette wants to give a speech instead?" },
+      { start: 177, end: 179, text: "Of course I want to give a speech" },
+      { start: 180, end: 183, text: "They impress me" },
+      { start: 190, end: 192, text: "But most of all..." },
+      { start: 192, end: 196, text: "...Colleagues in home care" },
+      { start: 198, end: 202, text: "I gladly take care of elderly people whom no one else bothers to help" },
+      { start: 204, end: 217, text: "- Look what it did to me\n- Welcome to reality" },
+      { start: 220, end: 223, text: "Gathering at eight o'clock?!" },
+      { start: 226, end: 231, text: "The first time I met Martha,\nshe was afraid of almost everything" },
+      { start: 232, end: 236, text: "Of the man who delivers the newspapers" },
+      { start: 240, end: 241, text: "...Of the birds" },
+      { start: 244, end: 247, text: "Of slipping on the rug..." },
+      { start: 250, end: 253, text: "...Of men" },
+      { start: 257, end: 260, text: "But most of all...\n...Of the home care service poisoning her" },
+      { start: 267, end: 270, text: "Open your mouth now, wide!" },
+      { start: 274, end: 278, text: "Behind the middle door... lives Elsie" },
+      { start: 280, end: 284, text: "Elsie is almost a hundred years old" },
+      { start: 286, end: 290, text: "Elsie is mean to almost everyone" },
+      { start: 291, end: 299, text: "To the man who delivers the newspapers...\n...To children on the playground" },
+      { start: 304, end: 311, text: "To the home care helper\nDo you know what it means? The little one is dead! Abortion!" },
+      { start: 318, end: 330, text: "But she is very unpleasant to Mr. W,\nwho lives behind the window opposite" },
+      { start: 333, end: 337, text: "Mr. W has been writing a book for twenty years" },
+      { start: 339, end: 343, text: "When he got to the last page, ...he got cancer" },
+      { start: 348, end: 351, text: "Therefore, he is very bitter" },
+      { start: 360, end: 363, text: "At those who can live" },
+      { start: 366, end: 371, text: "But most of all... because he needs home care even though he is only 49 years old" }
+    ]
+  };
 
-  let playbackSeconds = 0;
-  let timerInterval = null;
-
-  // Station list with your Dailymotion embed links and parameter strings restored
+  // Master Network Catalog: Add your future movies and shows directly here
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -190,85 +247,133 @@
   ];
 
   let currentIndex = 0;
-  const STATION_EPOCH_KEY = 'dap_247_station_epoch';
+  const GLOBAL_EPOCH_KEY = 'dap_247_global_broadcast_epoch';
+  const TOTAL_CHANNELS = stationData.length;
 
-  function getVirtualStationTime(index) {
-    let epochs = JSON.parse(localStorage.getItem(STATION_EPOCH_KEY)) || {};
+  // Continuous 24/7 Global Timeline Engine: Keeps a permanent, un-interruptible master clock running forward like live TV.
+  function getLiveVirtualTimeline(channelIndex) {
+    let masterEpochs = JSON.parse(localStorage.getItem(GLOBAL_EPOCH_KEY)) || {};
     let now = Math.floor(Date.now() / 1000);
-    const station = stationData[index];
 
-    if (!epochs[index]) {
-      epochs[index] = { startTime: now - Math.floor(Math.random() * 1200) };
-      localStorage.setItem(STATION_EPOCH_KEY, JSON.stringify(epochs));
+    if (!masterEpochs[channelIndex]) {
+      // Initialize an independent broadcast timeline start for this channel
+      masterEpochs[channelIndex] = {
+        catalogIdx: channelIndex % stationData.length,
+        startTime: now
+      };
+      localStorage.setItem(GLOBAL_EPOCH_KEY, JSON.stringify(masterEpochs));
     }
 
-    let elapsed = now - epochs[index].startTime;
-    let currentPosition = elapsed % station.duration;
-    return currentPosition;
+    let channelProg = masterEpochs[channelIndex];
+    let currentStation = stationData[channelProg.catalogIdx];
+    let elapsedTotal = now - channelProg.startTime;
+
+    // Automatically advance through the catalog sequence infinitely as time marches forward
+    while (elapsedTotal >= currentStation.duration) {
+      elapsedTotal -= currentStation.duration;
+      channelProg.catalogIdx = (channelProg.catalogIdx + 1) % stationData.length;
+      channelProg.startTime = now - elapsedTotal;
+      currentStation = stationData[channelProg.catalogIdx];
+      localStorage.setItem(GLOBAL_EPOCH_KEY, JSON.stringify(masterEpochs));
+    }
+
+    return {
+      catalogIdx: channelProg.catalogIdx,
+      offset: elapsedTotal
+    };
   }
 
-  function playStation(index, customOffset = null) {
-    currentIndex = index;
-    const station = stationData[index];
+  function applyCCUIState() {
+    let btnText = ccEnabled ? "CC: ON" : "CC: OFF";
+    mainCcBtn.innerText = btnText;
+    fsCcBtn.innerText = btnText;
     
-    let startSeconds = customOffset !== null ? customOffset : getVirtualStationTime(index);
-    playbackSeconds = startSeconds; 
+    if (ccEnabled) {
+      wrapper.classList.add('cc-active');
+    } else {
+      wrapper.classList.remove('cc-active');
+      subtitleOverlay.innerText = "";
+    }
+  }
+
+  let ccEnabled = true;
+
+  function toggleCC() {
+    ccEnabled = !ccEnabled;
+    applyCCUIState();
+    if (ccEnabled) {
+      updateSubtitles(playbackSeconds);
+    } else {
+      subtitleOverlay.innerText = "";
+    }
+  }
+
+  let playbackSeconds = 0;
+  let subtitleTimer = null;
+  let currentActiveCatalogIdx = 0;
+
+  function updateSubtitles(currentTime) {
+    if (!ccEnabled) {
+      subtitleOverlay.innerText = "";
+      return;
+    }
     
-    let cleanUrl = `${station.embed}&start=${startSeconds}`;
+    const station = stationData[currentActiveCatalogIdx];
+    const cues = subtitlesData[station.id];
+    
+    if (!cues || cues.length === 0) {
+      subtitleOverlay.innerText = "";
+      return;
+    }
+
+    let activeCue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
+    if (activeCue) {
+      subtitleOverlay.innerText = activeCue.text;
+    } else {
+      subtitleOverlay.innerText = "";
+    }
+  }
+
+  function playStation(channelIndex) {
+    currentIndex = channelIndex;
+    let liveState = getLiveVirtualTimeline(channelIndex);
+    currentActiveCatalogIdx = liveState.catalogIdx;
+    
+    const station = stationData[currentActiveCatalogIdx];
+    playbackSeconds = liveState.offset;
+    
+    let cleanUrl = `${station.embed}&start=${playbackSeconds}`;
     iframe.src = cleanUrl;
     
     display.innerText = station.name;
     nowPlayingLabel.innerText = "Now Playing: " + station.name;
     
-    let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
-    userHistory[index] = { time: startSeconds, updated: Date.now() };
-    localStorage.setItem('dap_247_user_history', JSON.stringify(userHistory));
-    localStorage.setItem('dap_247_last_channel', index);
-    localStorage.setItem('dap_247_last_active', Date.now());
+    localStorage.setItem('dap_247_last_channel', channelIndex);
     
     titleOverlay.innerText = station.name;
     titleOverlay.style.opacity = 1;
     setTimeout(() => { titleOverlay.style.opacity = 0; }, 2000);
 
-    clearInterval(timerInterval);
+    clearInterval(subtitleTimer);
+    updateSubtitles(playbackSeconds);
     
-    timerInterval = setInterval(() => {
+    subtitleTimer = setInterval(() => {
       playbackSeconds++;
-      if (playbackSeconds >= station.duration) {
-        clearInterval(timerInterval);
-        playRandomMovieOnCurrentChannel();
+      
+      // If the broadcast timeline hits the duration limit, instantly sync forward to the next scheduled title seamlessly
+      let checkState = getLiveVirtualTimeline(currentIndex);
+      if (checkState.catalogIdx !== currentActiveCatalogIdx) {
+        playStation(currentIndex);
+        return;
       }
+      
+      updateSubtitles(playbackSeconds);
     }, 1000);
   }
 
-  function playRandomMovieOnCurrentChannel() {
-    let availableIndices = [];
-    for (let i = 0; i < stationData.length; i++) {
-      if (i !== currentIndex) availableIndices.push(i);
-    }
-    let randomIdx = availableIndices[Math.floor(Math.random() * availableIndices.length)];
-    
-    let epochs = JSON.parse(localStorage.getItem(STATION_EPOCH_KEY)) || {};
-    epochs[randomIdx] = { startTime: Math.floor(Date.now() / 1000) };
-    localStorage.setItem(STATION_EPOCH_KEY, JSON.stringify(epochs));
-
-    playStation(randomIdx, 0);
-  }
-
   function nav(direction) {
-    let nextIdx = (currentIndex + direction + stationData.length) % stationData.length;
-    let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
-    let stationHistory = userHistory[nextIdx];
-    let now = Date.now();
-    
-    let targetTime = null;
-    if (stationHistory && (now - stationHistory.updated < 60 * 60 * 1000)) {
-      targetTime = stationHistory.time;
-    } else {
-      targetTime = getVirtualStationTime(nextIdx);
-    }
-    
-    playStation(nextIdx, targetTime);
+    let nextIdx = (currentIndex + direction + TOTAL_CHANNELS) % TOTAL_CHANNELS;
+    playStation(nextIdx);
   }
 
   document.addEventListener('keydown', (e) => {
@@ -320,30 +425,12 @@
   wrapper.addEventListener('mousedown', triggerActivity);
   wrapper.addEventListener('touchstart', triggerActivity, { passive: true });
 
-  ['click', 'keydown', 'touchstart'].forEach(event => {
-    document.addEventListener(event, () => {
-      localStorage.setItem('dap_247_last_active', Date.now());
-    }, { passive: true });
-  });
-
-  const TIMEOUT_LIMIT = 60 * 60 * 1000;
+  // On page load or refresh, instantly tune into the active live broadcast position across the 24/7 schedule
   const savedChannel = localStorage.getItem('dap_247_last_channel');
-  const lastActiveTime = localStorage.getItem('dap_247_last_active');
-  const nowTime = Date.now();
-  
-  let initialIndex = 0;
-  let initialTime = null;
+  let initialIndex = savedChannel !== null ? parseInt(savedChannel) : Math.floor(Math.random() * TOTAL_CHANNELS);
 
-  if (savedChannel !== null && lastActiveTime !== null && (nowTime - parseInt(lastActiveTime) < TIMEOUT_LIMIT)) {
-    initialIndex = parseInt(savedChannel);
-    let fullUserHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
-    initialTime = fullUserHistory[initialIndex] ? fullUserHistory[initialIndex].time : null;
-  } else {
-    initialIndex = Math.floor(Math.random() * stationData.length);
-    initialTime = getVirtualStationTime(initialIndex);
-  }
-
-  playStation(initialIndex, initialTime);
+  applyCCUIState();
+  playStation(initialIndex);
 </script>
 </body>
 </html>
