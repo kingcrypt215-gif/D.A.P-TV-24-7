@@ -27,7 +27,6 @@
         font-size: clamp(14px, 5vw, 28px);
     }
     
-    /* Subtitle Display Overlay (Clean gold text with no background box) */
     #subtitle-overlay {
       position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%);
       z-index: 2147483646; color: #FFD700; background: transparent;
@@ -38,7 +37,6 @@
     }
     .video-container.cc-active #subtitle-overlay { display: block; }
     
-    /* Transient Fullscreen Navigation & Controls Overlay */
     .fs-nav { 
         position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); 
         z-index: 2147483647; display: flex; gap: 10px; align-items: center;
@@ -52,12 +50,10 @@
     .nav-box { display: flex; justify-content: space-between; padding: 10px; }
     .nav-btn { background: #FFD700; color: #000; border: none; padding: 12px 24px; cursor: pointer; font-weight: bold; width: 48%; border-radius: 4px; }
     
-    /* Custom Control Toggles Panel */
     .controls-panel { display: flex; justify-content: center; gap: 10px; margin: 5px auto; }
     .ctrl-action-btn { background: #333; color: #FFD700; border: 1px solid #FFD700; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 14px; }
     .ctrl-action-btn:hover { background: #FFD700; color: #000; }
 
-    /* Invisible Shield Overlay to completely intercept clicks and prevent Dailymotion overlays from triggering */
     #click-shield {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       z-index: 2147483645; background: transparent; display: none;
@@ -65,7 +61,6 @@
     .video-container.fullscreen-mode #click-shield { display: block; }
     .video-container.fullscreen-mode.active-user #click-shield { pointer-events: none; }
 
-    /* Now Playing Ticker Section with Marquee Scrolling */
     #now-playing-section {
       background: #111;
       border-top: 2px solid #FFD700;
@@ -146,7 +141,6 @@
   <div id="subtitle-overlay"></div>
   <div id="click-shield"></div>
   
-  <!-- Transient Fullscreen Navigation, CC & Exit Box -->
   <div class="fs-nav">
       <button class="fs-btn" onclick="nav(-1)">PREV</button>
       <button class="fs-btn" id="fs-cc-toggle-btn" onclick="toggleCC()">CC: ON</button>
@@ -191,7 +185,6 @@
   const mainCcBtn = document.getElementById('main-cc-toggle-btn');
   const fsCcBtn = document.getElementById('fs-cc-toggle-btn');
   
-  // Complete Subtitles Database mapped directly to Nasty Old People's Video ID[span_0](start_span)[span_0](end_span)
   const subtitlesData = {
     "k2onvpqu5aRLmUHWMR4": [
       { start: 11, end: 20, text: "Danish translation by Michael Wahlstrøm" },
@@ -235,7 +228,6 @@
     ]
   };
 
-  // Master Network Catalog: Add your future movies and shows directly here
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -248,7 +240,7 @@
 
   let currentIndex = 0;
   const STATION_EPOCH_KEY = 'dap_247_station_epoch';
-  const TOTAL_CHANNELS = stationData.length;
+  const TOTAL_CHANNELS = 7; // Fixed to give you 7 distinct virtual channels across your full catalog
 
   function getAssignedCatalogIndex(channelIndex) {
     let channelAssignments = JSON.parse(localStorage.getItem('dap_247_channel_catalog_map')) || {};
@@ -264,8 +256,10 @@
       }
     }
     
+    // Pick a brand new random movie index from the full list that differs from the current one
+    let currentAssigned = channelAssignments[channelIndex] ? channelAssignments[channelIndex].catalogIdx : -1;
     let newIdx = Math.floor(Math.random() * stationData.length);
-    if (channelAssignments[channelIndex] && channelAssignments[channelIndex].catalogIdx === newIdx) {
+    if (newIdx === currentAssigned && stationData.length > 1) {
       newIdx = (newIdx + 1) % stationData.length;
     }
     
@@ -306,6 +300,8 @@
     }
   }
 
+  let ccEnabled = true;
+
   function toggleCC() {
     ccEnabled = !ccEnabled;
     applyCCUIState();
@@ -315,6 +311,9 @@
       subtitleOverlay.innerText = "";
     }
   }
+
+  let playbackSeconds = 0;
+  let subtitleTimer = null;
 
   function updateSubtitles(currentTime) {
     if (!ccEnabled) {
@@ -468,7 +467,6 @@
     initialTime = getVirtualStationTime(initialIndex, catalogIdx);
   }
 
-  let ccEnabled = true;
   applyCCUIState();
   playStation(initialIndex, initialTime);
 </script>
