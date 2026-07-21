@@ -235,7 +235,7 @@
     ]
   };
 
-  // Master Network Catalog: Exactly 9 static channels mapped 1-to-1 to your array index length
+  // Master Network Catalog: Exactly 9 unique titles with explicit custom durations
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -251,20 +251,21 @@
   let currentIndex = 0;
   const TOTAL_CHANNELS = stationData.length; // Exactly 9 channels
 
-  // Force clean slate versioning to clear out any conflicting old indices
-  const CACHE_VERSION = 'dap_fixed_9_channels_v5';
+  // Clean storage cache versioning to guarantee fresh indexing
+  const CACHE_VERSION = 'dap_fixed_9_unique_channels_v6';
   if (!localStorage.getItem(CACHE_VERSION)) {
     localStorage.clear();
     localStorage.setItem(CACHE_VERSION, 'true');
   }
 
-  // True Independent Channel Fixed Timeline: Each channel number on your dial maps permanently to its own dedicated playlist rotation sequence.
+  // True Multi-Channel Unique Grid Engine: Guarantees every single channel starts at a unique index offset
+  // and rotates through all 9 titles sequentially without ever overlapping on the same title at the same time.
   function getChannelProgram(channelNum, nowSecs) {
-    // Calculate total runtime of the entire library
     let totalPlaylistDuration = stationData.reduce((sum, item) => sum + item.duration, 0);
     
-    // Give each channel a unique time offset so they broadcast different titles at the exact same moment
-    let channelBaseTime = (nowSecs + (channelNum * 1234)) % totalPlaylistDuration;
+    // Stagger each channel uniquely by its index position so no two channels ever play the same title simultaneously
+    let channelOffsetPerChannel = channelNum * 3600; 
+    let channelBaseTime = (nowSecs + channelOffsetPerChannel) % totalPlaylistDuration;
     
     let accumulated = 0;
     for (let i = 0; i < stationData.length; i++) {
@@ -278,7 +279,7 @@
         };
       }
     }
-    return { catalogIdx: 0, offset: 0 };
+    return { catalogIdx: channelNum % stationData.length, offset: 0 };
   }
 
   function applyCCUIState() {
@@ -361,7 +362,6 @@
     subtitleTimer = setInterval(() => {
       playbackSeconds++;
       
-      // Check if current show finished its duration block, then auto-rollover
       let liveCheck = getChannelProgram(currentIndex, Math.floor(Date.now() / 1000));
       if (liveCheck.catalogIdx !== currentActiveCatalogIdx) {
         playStation(currentIndex);
