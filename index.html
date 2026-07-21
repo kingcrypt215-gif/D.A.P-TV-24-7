@@ -1,452 +1,439 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D.A.P TV 24/7 LIVE</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { background: #000; color: #fff; font-family: sans-serif; margin: 0; overflow-x: hidden; }
+    #brand { text-align: center; color: #FFD700; font-size: clamp(18px, 4vw, 24px); font-weight: bold; padding: 10px; }
+    #channel-display { text-align: center; color: #FFD700; background: #000; padding: 8px; font-weight: bold; font-size: clamp(14px, 3vw, 18px); border-bottom: 2px solid #FFD700; }
+    
+    .video-container { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; }
+    
+    #category-badge {
+        position: absolute; top: 15px; left: 15px; z-index: 2147483647;
+        background: transparent !important; color: #FFD700;
+        padding: 5px 10px; font-size: clamp(12px, 2vw, 14px); font-weight: bold;
+        text-transform: uppercase; text-shadow: 2px 2px 4px #000;
+        pointer-events: none;
+    }
 
-        body {
-            background-color: #0b0b0b;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
+    #fs-channel-title {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        z-index: 2147483646; color: #FFD700; font-weight: bold;
+        text-shadow: 2px 2px 8px #000; opacity: 0; transition: opacity 0.5s;
+        pointer-events: none; text-align: center; width: 90%; white-space: nowrap;
+        font-size: clamp(14px, 5vw, 28px);
+    }
+    
+    /* Subtitle Display Overlay (Clean gold text with no background box) */
+    #subtitle-overlay {
+      position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%);
+      z-index: 2147483646; color: #FFD700; background: transparent;
+      padding: 0; font-size: clamp(14px, 3vw, 22px); font-weight: bold;
+      text-align: center; max-width: 90%; display: none;
+      pointer-events: none; text-shadow: 2px 2px 6px #000, 0 0 2px #000; line-height: 1.4;
+      white-space: pre-line;
+    }
+    .video-container.cc-active #subtitle-overlay { display: block; }
+    
+    /* Transient Fullscreen Navigation & Controls Overlay */
+    .fs-nav { 
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); 
+        z-index: 2147483647; display: flex; gap: 10px; align-items: center;
+        opacity: 0; visibility: hidden; transition: opacity 0.4s ease-in-out, visibility 0.4s ease-in-out; 
+    }
+    .video-container.active-user .fs-nav { opacity: 1; visibility: visible; }
+    
+    .fs-btn { background: #FFD700 !important; color: #000 !important; border: none; padding: 8px 14px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: clamp(10px, 1.8vw, 14px); box-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+    .fs-btn:hover { background: #fff !important; }
 
-        /* Network Wrapper with Custom Gold Border Styling */
-        #dap-container {
-            position: relative;
-            width: 100%;
-            max-width: 960px;
-            aspect-ratio: 16 / 9;
-            background: #000;
-            border: 3px solid #FFD700;
-            border-radius: 8px 8px 0 0;
-            box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
-            margin: 20px 20px 0 20px;
-        }
+    .nav-box { display: flex; justify-content: space-between; padding: 10px; }
+    .nav-btn { background: #FFD700; color: #000; border: none; padding: 12px 24px; cursor: pointer; font-weight: bold; width: 48%; border-radius: 4px; }
+    
+    /* Custom Control Toggles Panel */
+    .controls-panel { display: flex; justify-content: center; gap: 10px; margin: 5px auto; }
+    .ctrl-action-btn { background: #333; color: #FFD700; border: 1px solid #FFD700; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 14px; }
+    .ctrl-action-btn:hover { background: #FFD700; color: #000; }
 
-        /* Fullscreen expansion across all devices */
-        #dap-container:fullscreen {
-            max-width: 100%;
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
-            border: none;
-            border-radius: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
-        }
-        #dap-container:-webkit-full-screen {
-            max-width: 100%;
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
-            border: none;
-            border-radius: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
-        }
-        #dap-container:-moz-full-screen {
-            max-width: 100%;
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
-            border: none;
-            border-radius: 0;
-        }
+    /* Invisible Shield Overlay to completely intercept clicks and prevent Dailymotion overlays from triggering */
+    #click-shield {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 2147483645; background: transparent; display: none;
+    }
+    .video-container.fullscreen-mode #click-shield { display: block; }
+    .video-container.fullscreen-mode.active-user #click-shield { pointer-events: none; }
 
-        /* Floating Gold Network Branding Tag */
-        .dap-watermark-tag {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            background: rgba(0, 0, 0, 0.75);
-            border: 1px solid #FFD700;
-            color: #FFD700;
-            padding: 6px 12px;
-            font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            border-radius: 4px;
-            z-index: 20;
-            pointer-events: none;
-            backdrop-filter: blur(4px);
-        }
+    /* Now Playing Ticker Section with Marquee Scrolling */
+    #now-playing-section {
+      background: #111;
+      border-top: 2px solid #FFD700;
+      border-bottom: 2px solid #FFD700;
+      padding: 12px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 5px;
+      overflow: hidden;
+    }
 
-        /* Custom Interactive Overlay for Native HTML5 Video */
-        #native-screen-shield {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: transparent;
-            z-index: 10;
-            cursor: pointer;
-        }
+    .marquee-container {
+      overflow: hidden;
+      white-space: nowrap;
+      flex-grow: 1;
+      margin-right: 15px;
+      position: relative;
+    }
 
-        /* Embedded Player Frame Wrapper */
-        #player-slot {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
+    #now-playing-label {
+      display: inline-block;
+      color: #fff;
+      font-size: clamp(13px, 2.5vw, 16px);
+      font-weight: bold;
+      padding-left: 100%;
+      animation: marquee 15s linear infinite;
+    }
 
-        #player-slot iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
+    @keyframes marquee {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(-100%, 0); }
+    }
 
-        /* Custom Network Control & Now Playing Bar */
-        .now-playing-bar {
-            width: 100%;
-            max-width: 960px;
-            padding: 15px 20px;
-            background: #141414;
-            border: 2px solid #FFD700;
-            border-top: none;
-            border-bottom-left-radius: 8px;
-            border-bottom-right-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 15px;
-            flex-wrap: wrap;
-            z-index: 30;
-        }
+    .live-feed-badge {
+      display: flex;
+      align-items: center;
+      background: #222;
+      border: 1px solid #444;
+      padding: 6px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
 
-        /* Transient On-Screen Control Overlay specifically for Fullscreen mode */
-        #dap-container:not(:fullscreen):not(:-webkit-full-screen):not(:-moz-full-screen) .fullscreen-overlay-bar {
-            display: none !important;
-        }
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      background-color: #ff3b30;
+      border-radius: 50%;
+      margin-right: 6px;
+      box-shadow: 0 0 8px #ff3b30;
+      animation: pulse-red 1.5s infinite;
+    }
 
-        .fullscreen-overlay-bar {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(20, 20, 20, 0.9);
-            backdrop-filter: blur(6px);
-            border-top: 2px solid #FFD700;
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 40;
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-            pointer-events: none;
-        }
+    @keyframes pulse-red {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(255, 59, 48, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+    }
 
-        #dap-container:fullscreen .fullscreen-overlay-bar,
-        #dap-container:-webkit-full-screen .fullscreen-overlay-bar,
-        #dap-container:-moz-full-screen .fullscreen-overlay-bar {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .info-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .now-playing-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #e5e5e5;
-            letter-spacing: 0.5px;
-        }
-
-        .live-indicator {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #FFD700;
-        }
-
-        .live-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #ff3b30;
-            border-radius: 50%;
-            box-shadow: 0 0 8px #ff3b30;
-            animation: pulse 1.5s infinite;
-        }
-
-        .controls-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .dap-btn {
-            background: #000;
-            border: 1px solid #FFD700;
-            color: #FFD700;
-            padding: 8px 12px;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .dap-btn:hover {
-            background: #FFD700;
-            color: #000;
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-        }
-
-        .volume-container {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: #000;
-            border: 1px solid #FFD700;
-            padding: 5px 10px;
-            border-radius: 4px;
-        }
-
-        .volume-container input[type="range"] {
-            width: 70px;
-            accent-color: #FFD700;
-            cursor: pointer;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.8; }
-        }
-    </style>
+    .live-text {
+      color: #FFD700;
+      font-size: clamp(10px, 2vw, 12px);
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+  </style>
 </head>
 <body>
 
-    <!-- Main Player Frame Container with 100% Custom Control Architecture -->
-    <div id="dap-container">
-        <div class="dap-watermark-tag">D.A.P TV 24/7</div>
-        <div id="native-screen-shield" onclick="togglePlayPause()"></div>
-        <div id="player-slot">
-            <!-- Custom HTML5 Video Node Injection -->
-        </div>
+<div id="brand">D.A.P TV 24/7</div>
+<div id="channel-display">Select a Stream</div>
 
-        <!-- Transient Fullscreen Control Deck Overlay -->
-        <div class="fullscreen-overlay-bar">
-            <div class="info-group">
-                <div class="now-playing-title" id="fs-track-title" style="color: #FFD700; font-size:12px;">D.A.P TV LIVE</div>
-            </div>
-            <div class="controls-group">
-                <button class="dap-btn" onclick="playPreviousVideo()">Prev</button>
-                <button class="dap-btn" id="fs-play-pause-btn" onclick="togglePlayPause()">⏸ Pause</button>
-                <button class="dap-btn" onclick="playNextVideo()">Next</button>
-                <div class="volume-container">
-                    <button class="dap-btn" id="fs-mute-btn" onclick="toggleMute()" style="border:none; padding:0; background:transparent;">🔊</button>
-                    <input type="range" id="fs-volume-slider" min="0" max="1" step="0.05" value="1" oninput="changeVolume(this.value)">
-                </div>
-                <button class="dap-btn" onclick="toggleFullScreen()">Exit Fullscreen</button>
-            </div>
-        </div>
-    </div>
+<div id="player-wrapper" class="video-container">
+  <div id="category-badge">D.A.P TV 24/7</div>
+  <div id="fs-channel-title">Stream Name</div>
+  <div id="subtitle-overlay"></div>
+  <div id="click-shield"></div>
+  
+  <!-- Transient Fullscreen Navigation, CC & Exit Box -->
+  <div class="fs-nav">
+      <button class="fs-btn" onclick="nav(-1)">PREV</button>
+      <button class="fs-btn" id="fs-cc-toggle-btn" onclick="toggleCC()">CC: ON</button>
+      <button class="fs-btn" onclick="toggleFullScreen()">EXIT</button>
+      <button class="fs-btn" onclick="nav(1)">NEXT</button>
+  </div>
 
-    <!-- Live Status, Ticker, and Master Custom Control Deck -->
-    <div class="now-playing-bar">
-        <div class="info-group">
-            <div class="now-playing-title" id="track-title">Initializing D.A.P TV 24/7...</div>
-            <div class="live-indicator">
-                <div class="live-dot"></div>
-                24/7 FEED
-            </div>
-        </div>
-        <div class="controls-group">
-            <button class="dap-btn" onclick="playPreviousVideo()">Prev</button>
-            <button class="dap-btn" id="play-pause-btn" onclick="togglePlayPause()">⏸ Pause</button>
-            <button class="dap-btn" onclick="playNextVideo()">Next</button>
-            
-            <div class="volume-container">
-                <button class="dap-btn" id="mute-btn" onclick="toggleMute()" style="border:none; padding:0; background:transparent;">🔊</button>
-                <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" oninput="changeVolume(this.value)">
-            </div>
+  <div id="player-container" style="width:100%; height:100%; position:relative;">
+    <iframe id="dm-player" frameborder="0" width="100%" height="100%" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%;"></iframe>
+  </div>
+</div>
 
-            <button class="dap-btn" onclick="toggleFullScreen()">Fullscreen</button>
-        </div>
-    </div>
+<div class="controls-panel">
+  <button id="fs-toggle-btn" class="ctrl-action-btn" onclick="toggleFullScreen()">FULLSCREEN</button>
+  <button id="main-cc-toggle-btn" class="ctrl-action-btn" onclick="toggleCC()">CC: ON</button>
+</div>
 
-    <script>
-        // Your custom catalog integrated directly into your independent network player engine
-        const videoCatalog = [
-            { title: "Strive", id: "k4ObpDYw3BipbbHWEW2" },
-            { title: "Ink", id: "k1OjGBaUwtLuvrHWG9U" },
-            { title: "The Redwood Massacre", id: "k2btb1TuZW82y7HWJ4u" },
-            { title: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4" },
-            { title: "Half Empty", id: "k3oEnpPscWIfF8HWOdw" },
-            { title: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q" },
-            { title: "Tiger", id: "k5q4oSCRSb8wg7HWT2S" }
-        ];
+<div class="nav-box">
+  <button class="nav-btn" onclick="nav(-1)">PREVIOUS</button>
+  <button class="nav-btn" onclick="nav(1)">NEXT</button>
+</div>
 
-        let shuffledPlaylist = [];
-        let currentIndex = 0;
-        let activeVideoElement = null;
-        let isPlaying = true;
-        let isMutedState = false;
-        let currentVolume = 1.0;
-        let previousVolume = 1.0;
+<div id="now-playing-section">
+  <div class="marquee-container">
+    <div id="now-playing-label">Playing: Loading...</div>
+  </div>
+  <div class="live-feed-badge">
+    <div class="live-dot"></div>
+    <span class="live-text">D.A.P TV 24/7 FEED</span>
+  </div>
+</div>
 
-        function shuffleArray(array) {
-            let shuffled = [...array];
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-            return shuffled;
-        }
+<script>
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 
-        function initializePlayer() {
-            shuffledPlaylist = shuffleArray(videoCatalog);
-            currentIndex = 0;
-            renderActiveVideo();
-        }
+  const display = document.getElementById('channel-display');
+  const nowPlayingLabel = document.getElementById('now-playing-label');
+  const titleOverlay = document.getElementById('fs-channel-title');
+  const subtitleOverlay = document.getElementById('subtitle-overlay');
+  const iframe = document.getElementById('dm-player');
+  const wrapper = document.getElementById('player-wrapper');
+  const mainCcBtn = document.getElementById('main-cc-toggle-btn');
+  const fsCcBtn = document.getElementById('fs-cc-toggle-btn');
+  
+  // Complete Subtitles Database mapped directly to Nasty Old People's Video ID
+  const subtitlesData = {
+    "k2onvpqu5aRLmUHWMR4": [
+      { start: 11, end: 20, text: "Danish translation by Michael Wahlstrøm" },
+      { start: 89, end: 91, text: "- Isn't it beautiful?\n- What the hell are you doing home?" },
+      { start: 96, end: 101, text: "Have you ever seen anything so luxurious?" },
+      { start: 111, end: 114, text: "My name is Mette" },
+      { start: 116, end: 119, text: "I am nineteen" },
+      { start: 126, end: 131, text: "When I was thirteen, I became a Nazi" },
+      { start: 139, end: 143, text: "Everyone loves me" },
+      { start: 144, end: 150, text: "Because they can come from both sides,\nso we'll position two here - and here" },
+      { start: 152, end: 155, text: "So it goes without saying that they will attack from behind" },
+      { start: 156, end: 159, text: "The people I take care of..." },
+      { start: 162, end: 168, text: "Here! Highest risk of attack,\nhere we are most vulnerable" },
+      { start: 171, end: 174, text: "The ones I have trouble with" },
+      { start: 174, end: 177, text: "Maybe Mette wants to give a speech instead?" },
+      { start: 177, end: 179, text: "Of course I want to give a speech" },
+      { start: 180, end: 183, text: "They impress me" },
+      { start: 190, end: 192, text: "But most of all..." },
+      { start: 192, end: 196, text: "...Colleagues in home care" },
+      { start: 198, end: 202, text: "I gladly take care of elderly people whom no one else bothers to help" },
+      { start: 204, end: 217, text: "- Look what it did to me\n- Welcome to reality" },
+      { start: 220, end: 223, text: "Gathering at eight o'clock?!" },
+      { start: 226, end: 231, text: "The first time I met Martha,\nshe was afraid of almost everything" },
+      { start: 232, end: 236, text: "Of the man who delivers the newspapers" },
+      { start: 240, end: 241, text: "...Of the birds" },
+      { start: 244, end: 247, text: "Of slipping on the rug..." },
+      { start: 250, end: 253, text: "...Of men" },
+      { start: 257, end: 260, text: "But most of all...\n...Of the home care service poisoning her" },
+      { start: 267, end: 270, text: "Open your mouth now, wide!" },
+      { start: 274, end: 278, text: "Behind the middle door... lives Elsie" },
+      { start: 280, end: 284, text: "Elsie is almost a hundred years old" },
+      { start: 286, end: 290, text: "Elsie is mean to almost everyone" },
+      { start: 291, end: 299, text: "To the man who delivers the newspapers...\n...To children on the playground" },
+      { start: 304, end: 311, text: "To the home care helper\nDo you know what it means? The little one is dead! Abortion!" },
+      { start: 318, end: 330, text: "But she is very unpleasant to Mr. W,\nwho lives behind the window opposite" },
+      { start: 333, end: 337, text: "Mr. W has been writing a book for twenty years" },
+      { start: 339, end: 343, text: "When he got to the last page, ...he got cancer" },
+      { start: 348, end: 351, text: "Therefore, he is very bitter" },
+      { start: 360, end: 363, text: "At those who can live" },
+      { start: 366, end: 371, text: "But most of all... because he needs home care even though he is only 49 years old" }
+    ]
+  };
 
-        function renderActiveVideo() {
-            const currentVideo = shuffledPlaylist[currentIndex];
-            const playerSlot = document.getElementById('player-slot');
-            
-            document.getElementById('track-title').innerText = "NOW STREAMING: " + currentVideo.title;
-            document.getElementById('fs-track-title').innerText = currentVideo.title;
+  let ccEnabled = true; // Starts ON by default
+  let playbackSeconds = 0;
+  let subtitleTimer = null;
 
-            playerSlot.innerHTML = '';
+  const stationData = [
+    { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "THE REDWOOD MASSACRE", id: "k2btb1TuZW82y7HWJ4u", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWJ4u?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Half Empty", id: "k3oEnpPscWIfF8HWOdw", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Tiger", id: "k5q4oSCRSb8wg7HWT2S", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" }
+  ];
 
-            // Using Dailymotion's direct progressive stream/embed source cleanly inside a customized wrapper view
-            const iframe = document.createElement('iframe');
-            iframe.src = `https://www.dailymotion.com/embed/video/${currentVideo.id}?autoplay=1&mute=0&controls=0&ui-start-screen-info=0&ui-logo=0&sharing-enable=0&queue-enable=0`;
-            iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; web-share');
-            iframe.setAttribute('allowfullscreen', 'true');
-            iframe.setAttribute('webkitallowfullscreen', 'true');
-            iframe.setAttribute('mozallowfullscreen', 'true');
-            iframe.setAttribute('msallowfullscreen', 'true');
-            playerSlot.appendChild(iframe);
+  let currentIndex = 0;
+  const STATION_EPOCH_KEY = 'dap_247_station_epoch';
 
-            isPlaying = true;
-            updatePlayPauseUI();
-        }
+  function getVirtualStationTime(index) {
+    let epochs = JSON.parse(localStorage.getItem(STATION_EPOCH_KEY)) || {};
+    let now = Math.floor(Date.now() / 1000);
+    const station = stationData[index];
 
-        function playNextVideo() {
-            currentIndex++;
-            if (currentIndex >= shuffledPlaylist.length) {
-                shuffledPlaylist = shuffleArray(videoCatalog);
-                currentIndex = 0;
-            }
-            renderActiveVideo();
-        }
+    if (!epochs[index]) {
+      epochs[index] = { startTime: now - Math.floor(Math.random() * 1200) };
+      localStorage.setItem(STATION_EPOCH_KEY, JSON.stringify(epochs));
+    }
 
-        function playPreviousVideo() {
-            currentIndex--;
-            if (currentIndex < 0) {
-                currentIndex = shuffledPlaylist.length - 1;
-            }
-            renderActiveVideo();
-        }
+    let elapsed = now - epochs[index].startTime;
+    let currentPosition = elapsed % station.duration;
+    return currentPosition;
+  }
 
-        function togglePlayPause() {
-            // Handled via custom network controls overlay
-            isPlaying = !isPlaying;
-            updatePlayPauseUI();
-        }
+  function applyCCUIState() {
+    let btnText = ccEnabled ? "CC: ON" : "CC: OFF";
+    mainCcBtn.innerText = btnText;
+    fsCcBtn.innerText = btnText;
+    
+    if (ccEnabled) {
+      wrapper.classList.add('cc-active');
+    } else {
+      wrapper.classList.remove('cc-active');
+      subtitleOverlay.innerText = "";
+    }
+  }
 
-        function updatePlayPauseUI() {
-            const label = isPlaying ? "⏸ Pause" : "▶ Play";
-            document.getElementById('play-pause-btn').innerText = label;
-            document.getElementById('fs-play-pause-btn').innerText = label;
-        }
+  function toggleCC() {
+    ccEnabled = !ccEnabled;
+    applyCCUIState();
+    if (ccEnabled) {
+      updateSubtitles(playbackSeconds);
+    } else {
+      subtitleOverlay.innerText = "";
+    }
+  }
 
-        function toggleMute() {
-            isMutedState = !isMutedState;
-            const sliders = [document.getElementById('volume-slider'), document.getElementById('fs-volume-slider')];
-            const muteBtns = [document.getElementById('mute-btn'), document.getElementById('fs-mute-btn')];
+  function updateSubtitles(currentTime) {
+    if (!ccEnabled) {
+      subtitleOverlay.innerText = "";
+      return;
+    }
+    
+    const station = stationData[currentIndex];
+    const cues = subtitlesData[station.id];
+    
+    if (!cues || cues.length === 0) {
+      subtitleOverlay.innerText = "";
+      return;
+    }
 
-            if (isMutedState) {
-                muteBtns.forEach(btn => btn.innerText = "🔇");
-                sliders.forEach(slider => slider.value = 0);
-            } else {
-                muteBtns.forEach(btn => btn.innerText = "🔊");
-                sliders.forEach(slider => slider.value = previousVolume > 0 ? previousVolume : 1.0);
-            }
-        }
+    let activeCue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
+    if (activeCue) {
+      subtitleOverlay.innerText = activeCue.text;
+    } else {
+      subtitleOverlay.innerText = "";
+    }
+  }
 
-        function changeVolume(val) {
-            const numericVal = parseFloat(val);
-            currentVolume = numericVal;
-            const muteBtns = [document.getElementById('mute-btn'), document.getElementById('fs-mute-btn')];
-            const sliders = [document.getElementById('volume-slider'), document.getElementById('fs-volume-slider')];
+  function playStation(index, customOffset = null) {
+    currentIndex = index;
+    const station = stationData[index];
+    
+    let startSeconds = customOffset !== null ? customOffset : getVirtualStationTime(index);
+    playbackSeconds = startSeconds; 
+    
+    let cleanUrl = `${station.embed}&start=${startSeconds}`;
+    iframe.src = cleanUrl;
+    
+    display.innerText = (index + 1) + ". " + station.name;
+    nowPlayingLabel.innerText = "Now Playing: " + station.name;
+    
+    let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
+    userHistory[index] = { time: startSeconds, updated: Date.now() };
+    localStorage.setItem('dap_247_user_history', JSON.stringify(userHistory));
+    localStorage.setItem('dap_247_last_channel', index);
+    localStorage.setItem('dap_247_last_active', Date.now());
+    
+    titleOverlay.innerText = (index + 1) + ". " + station.name;
+    titleOverlay.style.opacity = 1;
+    setTimeout(() => { titleOverlay.style.opacity = 0; }, 2000);
 
-            sliders.forEach(slider => slider.value = numericVal);
+    clearInterval(subtitleTimer);
+    updateSubtitles(playbackSeconds);
+    
+    subtitleTimer = setInterval(() => {
+      playbackSeconds++;
+      updateSubtitles(playbackSeconds);
+    }, 1000);
+  }
 
-            if (numericVal === 0) {
-                isMutedState = true;
-                muteBtns.forEach(btn => btn.innerText = "🔇");
-            } else {
-                isMutedState = false;
-                previousVolume = numericVal;
-                muteBtns.forEach(btn => btn.innerText = "🔊");
-            }
-        }
+  function nav(direction) {
+    let nextIdx = (currentIndex + direction + stationData.length) % stationData.length;
+    let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
+    let stationHistory = userHistory[nextIdx];
+    let now = Date.now();
+    
+    let targetTime = null;
+    if (stationHistory && (now - stationHistory.updated < 60 * 60 * 1000)) {
+      targetTime = stationHistory.time;
+    } else {
+      targetTime = getVirtualStationTime(nextIdx);
+    }
+    
+    playStation(nextIdx, targetTime);
+  }
 
-        function toggleFullScreen() {
-            const container = document.getElementById('dap-container');
-            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
-                if (container.requestFullscreen) {
-                    container.requestFullscreen();
-                } else if (container.webkitRequestFullscreen) {
-                    container.webkitRequestFullscreen();
-                } else if (container.mozRequestFullScreen) {
-                    container.mozRequestFullScreen();
-                } else if (container.msRequestFullscreen) {
-                    container.msRequestFullscreen();
-                }
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.mozCancelFullScreen) {
-                    document.mozCancelFullScreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
-                }
-            }
-        }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); nav(-1); }
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); nav(1); }
+  });
 
-        window.onload = function() {
-            initializePlayer();
-        };
-    </script>
+  function toggleFullScreen() {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (wrapper.requestFullscreen) {
+        wrapper.requestFullscreen();
+      } else if (wrapper.webkitRequestFullscreen) {
+        wrapper.webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (wrapper.webkitExitFullscreen) {
+        wrapper.webkitExitFullscreen();
+      }
+    }
+  }
+
+  function checkFullscreen() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+        wrapper.classList.add('fullscreen-mode');
+        triggerActivity();
+    } else {
+        wrapper.classList.remove('fullscreen-mode');
+        wrapper.classList.remove('active-user');
+    }
+  }
+
+  document.addEventListener('fullscreenchange', checkFullscreen);
+  document.addEventListener('webkitfullscreenchange', checkFullscreen);
+
+  let fadeTimer = null;
+  function triggerActivity() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      wrapper.classList.add('active-user');
+      clearTimeout(fadeTimer);
+      fadeTimer = setTimeout(() => {
+        wrapper.classList.remove('active-user');
+      }, 3000);
+    }
+  }
+
+  wrapper.addEventListener('mousemove', triggerActivity);
+  wrapper.addEventListener('mousedown', triggerActivity);
+  wrapper.addEventListener('touchstart', triggerActivity, { passive: true });
+
+  ['click', 'keydown', 'touchstart'].forEach(event => {
+    document.addEventListener(event, () => {
+      localStorage.setItem('dap_247_last_active', Date.now());
+    }, { passive: true });
+  });
+
+  const TIMEOUT_LIMIT = 60 * 60 * 1000;
+  const savedChannel = localStorage.getItem('dap_247_last_channel');
+  const lastActiveTime = localStorage.getItem('dap_247_last_active');
+  const nowTime = Date.now();
+  
+  let initialIndex = 0;
+  let initialTime = null;
+
+  if (savedChannel !== null && lastActiveTime !== null && (nowTime - parseInt(lastActiveTime) < TIMEOUT_LIMIT)) {
+    initialIndex = parseInt(savedChannel);
+    let fullUserHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
+    initialTime = fullUserHistory[initialIndex] ? fullUserHistory[initialIndex].time : null;
+  } else {
+    initialIndex = Math.floor(Math.random() * stationData.length);
+    initialTime = getVirtualStationTime(initialIndex);
+  }
+
+  applyCCUIState();
+  playStation(initialIndex, initialTime);
+</script>
 </body>
 </html>
