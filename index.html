@@ -46,14 +46,6 @@
     .ctrl-action-btn { background: #333; color: #FFD700; border: 1px solid #FFD700; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 14px; }
     .ctrl-action-btn:hover { background: #FFD700; color: #000; }
 
-    /* Invisible Shield Overlay to completely intercept clicks and prevent Dailymotion overlays from triggering */
-    #click-shield {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      z-index: 2147483645; background: transparent; display: none;
-    }
-    .video-container.fullscreen-mode #click-shield { display: block; }
-    .video-container.fullscreen-mode.active-user #click-shield { pointer-events: none; }
-
     /* Now Playing Ticker Section with Marquee Scrolling */
     #now-playing-section {
       background: #111;
@@ -132,17 +124,17 @@
 <div id="player-wrapper" class="video-container">
   <div id="category-badge">D.A.P TV 24/7</div>
   <div id="fs-channel-title">Stream Name</div>
-  <div id="click-shield"></div>
   
-  <!-- Transient Fullscreen Navigation & Exit Box (CC removed) -->
+  <!-- Transient Fullscreen Navigation & Exit Box -->
   <div class="fs-nav">
       <button class="fs-btn" onclick="nav(-1)">PREV</button>
       <button class="fs-btn" onclick="toggleFullScreen()">EXIT</button>
       <button class="fs-btn" onclick="nav(1)">NEXT</button>
   </div>
 
+  <!-- Native HTML5 Video Element for direct stream URLs -->
   <div id="player-container" style="width:100%; height:100%; position:relative;">
-    <iframe id="dm-player" frameborder="0" width="100%" height="100%" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%;"></iframe>
+    <video id="native-player" width="100%" height="100%" autoplay muted playsinline controlslist="nodownload" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain;"></video>
   </div>
 </div>
 
@@ -171,20 +163,18 @@
   const display = document.getElementById('channel-display');
   const nowPlayingLabel = document.getElementById('now-playing-label');
   const titleOverlay = document.getElementById('fs-channel-title');
-  const iframe = document.getElementById('dm-player');
+  const videoPlayer = document.getElementById('native-player');
   const wrapper = document.getElementById('player-wrapper');
 
-  let playbackSeconds = 0;
-  let timerInterval = null;
-
+  // Station list mapped directly with your 7 links and titles integrated into the native HTML5 player setup
   const stationData = [
-    { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "THE REDWOOD MASSACRE", id: "k2btb1TuZW82y7HWJ4u", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWJ4u?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "Half Empty", id: "k3oEnpPscWIfF8HWOdw", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
-    { name: "Tiger", id: "k5q4oSCRSb8wg7HWT2S", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" }
+    { name: "Strive", url: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2", duration: 5400 },
+    { name: "Ink", url: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U", duration: 5400 },
+    { name: "THE REDWOOD MASSACRE", url: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWJ4u", duration: 5400 },
+    { name: "Nasty Old People", url: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4", duration: 5400 },
+    { name: "Half Empty", url: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw", duration: 5400 },
+    { name: "Artifacts Of Idealism", url: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q", duration: 5400 },
+    { name: "Tiger", url: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S", duration: 5400 }
   ];
 
   let currentIndex = 0;
@@ -210,12 +200,11 @@
     const station = stationData[index];
     
     let startSeconds = customOffset !== null ? customOffset : getVirtualStationTime(index);
-    playbackSeconds = startSeconds; 
     
-    let cleanUrl = `${station.embed}&start=${startSeconds}`;
-    iframe.src = cleanUrl;
+    videoPlayer.src = station.url;
+    videoPlayer.currentTime = startSeconds;
+    videoPlayer.play().catch(e => console.log("Autoplay waiting for user interaction:", e));
     
-    // Channel numbers removed from displays and overlays
     display.innerText = station.name;
     nowPlayingLabel.innerText = "Now Playing: " + station.name;
     
@@ -228,20 +217,12 @@
     titleOverlay.innerText = station.name;
     titleOverlay.style.opacity = 1;
     setTimeout(() => { titleOverlay.style.opacity = 0; }, 2000);
-
-    clearInterval(timerInterval);
-    
-    // Increment playback time and check if movie reached its duration limit
-    timerInterval = setInterval(() => {
-      playbackSeconds++;
-      if (playbackSeconds >= station.duration) {
-        clearInterval(timerInterval);
-        playRandomMovieOnCurrentChannel();
-      }
-    }, 1000);
   }
 
-  // Plays a different random movie/station out of the list when one finishes
+  videoPlayer.onended = function() {
+    playRandomMovieOnCurrentChannel();
+  };
+
   function playRandomMovieOnCurrentChannel() {
     let availableIndices = [];
     for (let i = 0; i < stationData.length; i++) {
@@ -249,7 +230,6 @@
     }
     let randomIdx = availableIndices[Math.floor(Math.random() * availableIndices.length)];
     
-    // Reset epoch for the newly chosen target so it starts from the beginning (0 seconds)
     let epochs = JSON.parse(localStorage.getItem(STATION_EPOCH_KEY)) || {};
     epochs[randomIdx] = { startTime: Math.floor(Date.now() / 1000) };
     localStorage.setItem(STATION_EPOCH_KEY, JSON.stringify(epochs));
