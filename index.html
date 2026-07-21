@@ -46,6 +46,14 @@
     .ctrl-action-btn { background: #333; color: #FFD700; border: 1px solid #FFD700; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 14px; }
     .ctrl-action-btn:hover { background: #FFD700; color: #000; }
 
+    /* Invisible Shield Overlay to completely intercept clicks and prevent Dailymotion overlays from triggering */
+    #click-shield {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 2147483645; background: transparent; display: none;
+    }
+    .video-container.fullscreen-mode #click-shield { display: block; }
+    .video-container.fullscreen-mode.active-user #click-shield { pointer-events: none; }
+
     /* Now Playing Ticker Section with Marquee Scrolling */
     #now-playing-section {
       background: #111;
@@ -124,6 +132,7 @@
 <div id="player-wrapper" class="video-container">
   <div id="category-badge">D.A.P TV 24/7</div>
   <div id="fs-channel-title">Stream Name</div>
+  <div id="click-shield"></div>
   
   <!-- Transient Fullscreen Navigation & Exit Box -->
   <div class="fs-nav">
@@ -132,9 +141,9 @@
       <button class="fs-btn" onclick="nav(1)">NEXT</button>
   </div>
 
-  <!-- Native HTML5 Video Element for direct stream URLs -->
+  <!-- Restored Dailymotion Iframe Player Container -->
   <div id="player-container" style="width:100%; height:100%; position:relative;">
-    <video id="native-player" width="100%" height="100%" autoplay muted playsinline controlslist="nodownload" style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain;"></video>
+    <iframe id="dm-player" frameborder="0" width="100%" height="100%" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%;"></iframe>
   </div>
 </div>
 
@@ -163,18 +172,21 @@
   const display = document.getElementById('channel-display');
   const nowPlayingLabel = document.getElementById('now-playing-label');
   const titleOverlay = document.getElementById('fs-channel-title');
-  const videoPlayer = document.getElementById('native-player');
+  const iframe = document.getElementById('dm-player');
   const wrapper = document.getElementById('player-wrapper');
 
-  // Station list mapped directly with your 7 links and titles integrated into the native HTML5 player setup
+  let playbackSeconds = 0;
+  let timerInterval = null;
+
+  // Station list with your Dailymotion embed links and parameter strings restored
   const stationData = [
-    { name: "Strive", url: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2", duration: 5400 },
-    { name: "Ink", url: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U", duration: 5400 },
-    { name: "THE REDWOOD MASSACRE", url: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWJ4u", duration: 5400 },
-    { name: "Nasty Old People", url: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4", duration: 5400 },
-    { name: "Half Empty", url: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw", duration: 5400 },
-    { name: "Artifacts Of Idealism", url: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q", duration: 5400 },
-    { name: "Tiger", url: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S", duration: 5400 }
+    { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "THE REDWOOD MASSACRE", id: "k2btb1TuZW82y7HWJ4u", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2btb1TuZW82y7HWJ4u?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Nasty Old People", id: "k2onvpqu5aRLmUHWMR4", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k2onvpqu5aRLmUHWMR4?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Half Empty", id: "k3oEnpPscWIfF8HWOdw", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k3oEnpPscWIfF8HWOdw?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Artifacts Of Idealism", id: "k7iwKjmDYVxYRSHWR4q", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k7iwKjmDYVxYRSHWR4q?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
+    { name: "Tiger", id: "k5q4oSCRSb8wg7HWT2S", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k5q4oSCRSb8wg7HWT2S?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" }
   ];
 
   let currentIndex = 0;
@@ -200,10 +212,10 @@
     const station = stationData[index];
     
     let startSeconds = customOffset !== null ? customOffset : getVirtualStationTime(index);
+    playbackSeconds = startSeconds; 
     
-    videoPlayer.src = station.url;
-    videoPlayer.currentTime = startSeconds;
-    videoPlayer.play().catch(e => console.log("Autoplay waiting for user interaction:", e));
+    let cleanUrl = `${station.embed}&start=${startSeconds}`;
+    iframe.src = cleanUrl;
     
     display.innerText = station.name;
     nowPlayingLabel.innerText = "Now Playing: " + station.name;
@@ -217,11 +229,17 @@
     titleOverlay.innerText = station.name;
     titleOverlay.style.opacity = 1;
     setTimeout(() => { titleOverlay.style.opacity = 0; }, 2000);
-  }
 
-  videoPlayer.onended = function() {
-    playRandomMovieOnCurrentChannel();
-  };
+    clearInterval(timerInterval);
+    
+    timerInterval = setInterval(() => {
+      playbackSeconds++;
+      if (playbackSeconds >= station.duration) {
+        clearInterval(timerInterval);
+        playRandomMovieOnCurrentChannel();
+      }
+    }, 1000);
+  }
 
   function playRandomMovieOnCurrentChannel() {
     let availableIndices = [];
