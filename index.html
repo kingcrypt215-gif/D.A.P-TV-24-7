@@ -227,7 +227,7 @@
       { start: 291, end: 299, text: "To the man who delivers the newspapers...\n...To children on the playground" },
       { start: 304, end: 311, text: "To the home care helper\nDo you know what it means? The little one is dead! Abortion!" },
       { start: 318, end: 330, text: "But she is very unpleasant to Mr. W,\nwho lives behind the window opposite" },
-      { start: 333, end: 337, text: "Mr. W has been writing a book for twenty years" },
+      { start: 326, end: 337, text: "Mr. W has been writing a book for twenty years" },
       { start: 339, end: 343, text: "When he got to the last page, ...he got cancer" },
       { start: 348, end: 351, text: "Therefore, he is very bitter" },
       { start: 360, end: 363, text: "At those who can live" },
@@ -235,7 +235,7 @@
     ]
   };
 
-  // Master Network Catalog: All titles including The Redwood Massacre
+  // Master Network Catalog: All titles including The Redwood Massacre and Pioneer One
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -249,24 +249,27 @@
   ];
 
   let currentIndex = 0;
-  const GLOBAL_EPOCH_KEY = 'dap_247_global_broadcast_epoch';
+  const GLOBAL_EPOCH_KEY = 'dap_247_global_broadcast_epoch_v3';
   const TOTAL_CHANNELS = stationData.length;
 
-  // Clear stale cached epoch data so the browser forces a clean refresh of the full index list
-  if (!localStorage.getItem('dap_247_catalog_fix_v2')) {
+  // Clear stale cache storage to reset all channels cleanly across the full catalog list
+  if (!localStorage.getItem('dap_247_fresh_start_v3')) {
     localStorage.removeItem(GLOBAL_EPOCH_KEY);
-    localStorage.setItem('dap_247_catalog_fix_v2', 'true');
+    localStorage.removeItem('dap_247_last_channel');
+    localStorage.setItem('dap_247_fresh_start_v3', 'true');
   }
 
-  // Continuous 24/7 Global Timeline Engine: Keeps a permanent, un-interruptible master clock running forward like live TV.
+  // Continuous 24/7 Global Timeline Engine: Calculates exact program offsets based on a single unified epoch baseline
   function getLiveVirtualTimeline(channelIndex) {
     let masterEpochs = JSON.parse(localStorage.getItem(GLOBAL_EPOCH_KEY)) || {};
     let now = Math.floor(Date.now() / 1000);
 
     if (!masterEpochs[channelIndex]) {
+      // Stagger initial channel start times so every channel on the dial plays a different show simultaneously
+      let staggeredOffset = (channelIndex * 1800) % 5400;
       masterEpochs[channelIndex] = {
         catalogIdx: channelIndex % stationData.length,
-        startTime: now
+        startTime: now - staggeredOffset
       };
       localStorage.setItem(GLOBAL_EPOCH_KEY, JSON.stringify(masterEpochs));
     }
@@ -381,7 +384,7 @@
   }
 
   function nav(direction) {
-    let nextIdx = (currentIndex + direction + TOTAL_CHANNELS) % TOTAL_CHANNels;
+    let nextIdx = (currentIndex + direction + TOTAL_CHANNELS) % TOTAL_CHANNELS;
     playStation(nextIdx);
   }
 
