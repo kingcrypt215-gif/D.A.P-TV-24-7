@@ -235,7 +235,7 @@
     ]
   };
 
-  // Master Network Catalog: All 9 titles properly bound with unique IDs
+  // Master Network Catalog: Exactly 9 static channels mapped 1-to-1 to your array index length
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -249,50 +249,36 @@
   ];
 
   let currentIndex = 0;
-  const GLOBAL_EPOCH_KEY = 'dap_247_global_broadcast_epoch_v4';
-  const TOTAL_CHANNELS = stationData.length;
+  const TOTAL_CHANNELS = stationData.length; // Exactly 9 channels
 
-  // Clear previous cache state to ensure Ep. 2 is fully recognized in the index sequence
-  if (!localStorage.getItem('dap_247_fresh_start_v4')) {
-    localStorage.removeItem(GLOBAL_EPOCH_KEY);
-    localStorage.removeItem('dap_247_last_channel');
-    localStorage.setItem('dap_247_fresh_start_v4', 'true');
+  // Force clean slate versioning to clear out any conflicting old indices
+  const CACHE_VERSION = 'dap_fixed_9_channels_v5';
+  if (!localStorage.getItem(CACHE_VERSION)) {
+    localStorage.clear();
+    localStorage.setItem(CACHE_VERSION, 'true');
   }
 
-  // Continuous 24/7 Global Timeline Engine: Maps each channel slot independently across all 9 catalog titles
-  function getLiveVirtualTimeline(channelIndex) {
-    let masterEpochs = JSON.parse(localStorage.getItem(GLOBAL_EPOCH_KEY)) || {};
-    let now = Math.floor(Date.now() / 1000);
-
-    if (!masterEpochs[channelIndex]) {
-      let staggeredOffset = (channelIndex * 1500) % 5400;
-      masterEpochs[channelIndex] = {
-        catalogIdx: channelIndex % stationData.length,
-        startTime: now - staggeredOffset
-      };
-      localStorage.setItem(GLOBAL_EPOCH_KEY, JSON.stringify(masterEpochs));
-    }
-
-    let channelProg = masterEpochs[channelIndex];
-    if (channelProg.catalogIdx >= stationData.length) {
-      channelProg.catalogIdx = 0;
-    }
+  // True Independent Channel Fixed Timeline: Each channel number on your dial maps permanently to its own dedicated playlist rotation sequence.
+  function getChannelProgram(channelNum, nowSecs) {
+    // Calculate total runtime of the entire library
+    let totalPlaylistDuration = stationData.reduce((sum, item) => sum + item.duration, 0);
     
-    let currentStation = stationData[channelProg.catalogIdx];
-    let elapsedTotal = now - channelProg.startTime;
-
-    while (elapsedTotal >= currentStation.duration) {
-      elapsedTotal -= currentStation.duration;
-      channelProg.catalogIdx = (channelProg.catalogIdx + 1) % stationData.length;
-      channelProg.startTime = now - elapsedTotal;
-      currentStation = stationData[channelProg.catalogIdx];
-      localStorage.setItem(GLOBAL_EPOCH_KEY, JSON.stringify(masterEpochs));
+    // Give each channel a unique time offset so they broadcast different titles at the exact same moment
+    let channelBaseTime = (nowSecs + (channelNum * 1234)) % totalPlaylistDuration;
+    
+    let accumulated = 0;
+    for (let i = 0; i < stationData.length; i++) {
+      accumulated += stationData[i].duration;
+      if (channelBaseTime < accumulated) {
+        let itemStartTime = accumulated - stationData[i].duration;
+        let programOffset = channelBaseTime - itemStartTime;
+        return {
+          catalogIdx: i,
+          offset: programOffset
+        };
+      }
     }
-
-    return {
-      catalogIdx: channelProg.catalogIdx,
-      offset: elapsedTotal
-    };
+    return { catalogIdx: 0, offset: 0 };
   }
 
   function applyCCUIState() {
@@ -348,16 +334,19 @@
 
   function playStation(channelIndex) {
     currentIndex = channelIndex;
-    let liveState = getLiveVirtualTimeline(channelIndex);
-    currentActiveCatalogIdx = liveState.catalogIdx;
+    let nowSecs = Math.floor(Date.now() / 1000);
+    let channelProg = getChannelProgram(channelIndex, nowSecs);
     
+    currentActiveCatalogIdx = channelProg.catalogIdx;
     const station = stationData[currentActiveCatalogIdx];
-    playbackSeconds = liveState.offset;
+    playbackSeconds = channelProg.offset;
     
     let cleanUrl = `${station.embed}&start=${playbackSeconds}`;
     iframe.src = cleanUrl;
     
-    display.innerText = station.name;
+    // Display channel number and title clearly
+    let channelDisplayTitle = `Channel ${channelIndex + 1} - ${station.name}`;
+    display.innerText = channelDisplayTitle;
     nowPlayingLabel.innerText = "Now Playing: " + station.name;
     
     localStorage.setItem('dap_247_last_channel', channelIndex);
@@ -372,8 +361,9 @@
     subtitleTimer = setInterval(() => {
       playbackSeconds++;
       
-      let checkState = getLiveVirtualTimeline(currentIndex);
-      if (checkState.catalogIdx !== currentActiveCatalogIdx) {
+      // Check if current show finished its duration block, then auto-rollover
+      let liveCheck = getChannelProgram(currentIndex, Math.floor(Date.now() / 1000));
+      if (liveCheck.catalogIdx !== currentActiveCatalogIdx) {
         playStation(currentIndex);
         return;
       }
@@ -437,7 +427,7 @@
   wrapper.addEventListener('touchstart', triggerActivity, { passive: true });
 
   const savedChannel = localStorage.getItem('dap_247_last_channel');
-  let initialIndex = savedChannel !== null ? parseInt(savedChannel) : Math.floor(Math.random() * TOTAL_CHANNELS);
+  let initialIndex = savedChannel !== null ? parseInt(savedChannel) : 0;
 
   applyCCUIState();
   playStation(initialIndex);
