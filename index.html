@@ -27,6 +27,7 @@
         font-size: clamp(14px, 5vw, 28px);
     }
     
+    /* Subtitle Display Overlay (Clean gold text with no background box) */
     #subtitle-overlay {
       position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%);
       z-index: 2147483646; color: #FFD700; background: transparent;
@@ -37,6 +38,7 @@
     }
     .video-container.cc-active #subtitle-overlay { display: block; }
     
+    /* Transient Fullscreen Navigation & Controls Overlay */
     .fs-nav { 
         position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); 
         z-index: 2147483647; display: flex; gap: 10px; align-items: center;
@@ -50,10 +52,12 @@
     .nav-box { display: flex; justify-content: space-between; padding: 10px; }
     .nav-btn { background: #FFD700; color: #000; border: none; padding: 12px 24px; cursor: pointer; font-weight: bold; width: 48%; border-radius: 4px; }
     
+    /* Custom Control Toggles Panel */
     .controls-panel { display: flex; justify-content: center; gap: 10px; margin: 5px auto; }
     .ctrl-action-btn { background: #333; color: #FFD700; border: 1px solid #FFD700; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 14px; }
     .ctrl-action-btn:hover { background: #FFD700; color: #000; }
 
+    /* Invisible Shield Overlay to completely intercept clicks and prevent Dailymotion overlays from triggering */
     #click-shield {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       z-index: 2147483645; background: transparent; display: none;
@@ -61,6 +65,7 @@
     .video-container.fullscreen-mode #click-shield { display: block; }
     .video-container.fullscreen-mode.active-user #click-shield { pointer-events: none; }
 
+    /* Now Playing Ticker Section with Marquee Scrolling */
     #now-playing-section {
       background: #111;
       border-top: 2px solid #FFD700;
@@ -133,7 +138,7 @@
 <body>
 
 <div id="brand">D.A.P TV 24/7</div>
-<div id="channel-display">Loading Stream...</div>
+<div id="channel-display">Select a Stream</div>
 
 <div id="player-wrapper" class="video-container">
   <div id="category-badge">D.A.P TV 24/7</div>
@@ -141,6 +146,7 @@
   <div id="subtitle-overlay"></div>
   <div id="click-shield"></div>
   
+  <!-- Transient Fullscreen Navigation, CC & Exit Box -->
   <div class="fs-nav">
       <button class="fs-btn" onclick="nav(-1)">PREV</button>
       <button class="fs-btn" id="fs-cc-toggle-btn" onclick="toggleCC()">CC: ON</button>
@@ -185,48 +191,33 @@
   const mainCcBtn = document.getElementById('main-cc-toggle-btn');
   const fsCcBtn = document.getElementById('fs-cc-toggle-btn');
   
+  // Linked Subtitles Database for Nasty Old People mapped directly to its Dailymotion Video ID
   const subtitlesData = {
     "k2onvpqu5aRLmUHWMR4": [
-      { start: 11, end: 20, text: "Danish translation by Michael Wahlstrøm" },
-      { start: 89, end: 91, text: "- Isn't it beautiful?\n- What the hell are you doing home?" },
+      { start: 11, end: 20, text: "Danish text by Michael Wahlstrøm" },
+      { start: 89, end: 91, text: "- Isn't it beautiful?\n- What the hell are you doing at home?" },
       { start: 96, end: 101, text: "Have you ever seen anything so luxurious?" },
-      { start: 111, end: 114, text: "My name is Mette" },
-      { start: 116, end: 119, text: "I am nineteen" },
-      { start: 126, end: 131, text: "When I was thirteen, I became a Nazi" },
-      { start: 139, end: 143, text: "Everyone loves me" },
-      { start: 144, end: 150, text: "Because they can come from both sides,\nso we'll position two here - and here" },
-      { start: 152, end: 155, text: "So it goes without saying that they will attack from behind" },
+      { start: 111, end: 114, text: "My name is Mette." },
+      { start: 116, end: 119, text: "I am nineteen." },
+      { start: 126, end: 131, text: "When I was thirteen, I became a Nazi." },
+      { start: 139, end: 143, text: "Everyone loves me." },
+      { start: 144, end: 150, text: "Because they can come from both sides, we'll position the two of us here - and here." },
+      { start: 152, end: 155, text: "So it goes without saying they will attack from behind." },
       { start: 156, end: 159, text: "The people I take care of..." },
-      { start: 162, end: 168, text: "Here! Highest risk of attack,\nhere we are most vulnerable" },
-      { start: 171, end: 174, text: "The ones I have trouble with" },
-      { start: 174, end: 177, text: "Maybe Mette wants to give a speech instead?" },
-      { start: 177, end: 179, text: "Of course I want to give a speech" },
-      { start: 180, end: 183, text: "They impress me" },
+      { start: 162, end: 168, text: "Here! Highest risk of attack, here is where we are most vulnerable." },
+      { start: 171, end: 174, text: "The ones I have trouble with." },
+      { start: 174, end: 177, text: "Perhaps Mette would like to give a speech instead?" },
+      { start: 177, end: 179, text: "Of course I want to give a speech." },
+      { start: 180, end: 183, text: "They impress me." },
       { start: 190, end: 192, text: "But most of all..." },
-      { start: 192, end: 196, text: "...Colleagues in home care" },
-      { start: 198, end: 202, text: "I gladly take care of elderly people whom no one else bothers to help" },
-      { start: 204, end: 217, text: "- Look what it did to me\n- Welcome to reality" },
-      { start: 220, end: 223, text: "Gathering at eight o'clock?!" },
-      { start: 226, end: 231, text: "The first time I met Martha,\nshe was afraid of almost everything" },
-      { start: 232, end: 236, text: "Of the man who delivers the newspapers" },
-      { start: 240, end: 241, text: "...Of the birds" },
-      { start: 244, end: 247, text: "Of slipping on the rug..." },
-      { start: 250, end: 253, text: "...Of men" },
-      { start: 257, end: 260, text: "But most of all...\n...Of the home care service poisoning her" },
-      { start: 267, end: 270, text: "Open your mouth now, wide!" },
-      { start: 274, end: 278, text: "Behind the middle door... lives Elsie" },
-      { start: 280, end: 284, text: "Elsie is almost a hundred years old" },
-      { start: 286, end: 290, text: "Elsie is mean to almost everyone" },
-      { start: 291, end: 299, text: "To the man who delivers the newspapers...\n...To children on the playground" },
-      { start: 304, end: 311, text: "To the home care helper\nDo you know what it means? The little one is dead! Abortion!" },
-      { start: 318, end: 330, text: "But she is very unpleasant to Mr. W,\nwho lives behind the window opposite" },
-      { start: 333, end: 337, text: "Mr. W has been writing a book for twenty years" },
-      { start: 339, end: 343, text: "When he got to the last page, ...he got cancer" },
-      { start: 348, end: 351, text: "Therefore, he is very bitter" },
-      { start: 360, end: 363, text: "At those who can live" },
-      { start: 366, end: 371, text: "But most of all... because he needs home care even though he is only 49 years old" }
+      { start: 192, end: 196, text: "...Colleagues in home care." },
+      { start: 198, end: 202, text: "I happily take care of old people that no one else bothers to help." }
     ]
   };
+
+  let ccEnabled = true; // Starts ON by default
+  let playbackSeconds = 0;
+  let subtitleTimer = null;
 
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -240,49 +231,18 @@
 
   let currentIndex = 0;
   const STATION_EPOCH_KEY = 'dap_247_station_epoch';
-  const TOTAL_CHANNELS = 7; // Fixed to give you 7 distinct virtual channels across your full catalog
 
-  function getAssignedCatalogIndex(channelIndex) {
-    let channelAssignments = JSON.parse(localStorage.getItem('dap_247_channel_catalog_map')) || {};
-    let now = Math.floor(Date.now() / 1000);
-    
-    if (channelAssignments[channelIndex]) {
-      let assignment = channelAssignments[channelIndex];
-      let targetMovie = stationData[assignment.catalogIdx];
-      let elapsed = now - assignment.startTime;
-      
-      if (elapsed < targetMovie.duration) {
-        return assignment.catalogIdx;
-      }
-    }
-    
-    // Pick a brand new random movie index from the full list that differs from the current one
-    let currentAssigned = channelAssignments[channelIndex] ? channelAssignments[channelIndex].catalogIdx : -1;
-    let newIdx = Math.floor(Math.random() * stationData.length);
-    if (newIdx === currentAssigned && stationData.length > 1) {
-      newIdx = (newIdx + 1) % stationData.length;
-    }
-    
-    channelAssignments[channelIndex] = {
-      catalogIdx: newIdx,
-      startTime: now
-    };
-    localStorage.setItem('dap_247_channel_catalog_map', JSON.stringify(channelAssignments));
-    return newIdx;
-  }
-
-  function getVirtualStationTime(channelIndex, catalogIdx) {
+  function getVirtualStationTime(index) {
     let epochs = JSON.parse(localStorage.getItem(STATION_EPOCH_KEY)) || {};
     let now = Math.floor(Date.now() / 1000);
-    const station = stationData[catalogIdx];
+    const station = stationData[index];
 
-    let epochKey = channelIndex + "_" + catalogIdx;
-    if (!epochs[epochKey]) {
-      epochs[epochKey] = { startTime: now - Math.floor(Math.random() * 600) };
+    if (!epochs[index]) {
+      epochs[index] = { startTime: now - Math.floor(Math.random() * 1200) };
       localStorage.setItem(STATION_EPOCH_KEY, JSON.stringify(epochs));
     }
 
-    let elapsed = now - epochs[epochKey].startTime;
+    let elapsed = now - epochs[index].startTime;
     let currentPosition = elapsed % station.duration;
     return currentPosition;
   }
@@ -300,8 +260,6 @@
     }
   }
 
-  let ccEnabled = true;
-
   function toggleCC() {
     ccEnabled = !ccEnabled;
     applyCCUIState();
@@ -312,17 +270,13 @@
     }
   }
 
-  let playbackSeconds = 0;
-  let subtitleTimer = null;
-
   function updateSubtitles(currentTime) {
     if (!ccEnabled) {
       subtitleOverlay.innerText = "";
       return;
     }
     
-    let activeCatalogIdx = getAssignedCatalogIndex(currentIndex);
-    const station = stationData[activeCatalogIdx];
+    const station = stationData[currentIndex];
     const cues = subtitlesData[station.id];
     
     if (!cues || cues.length === 0) {
@@ -338,27 +292,26 @@
     }
   }
 
-  function playStation(channelIndex, customOffset = null) {
-    currentIndex = channelIndex;
-    let catalogIdx = getAssignedCatalogIndex(channelIndex);
-    const station = stationData[catalogIdx];
+  function playStation(index, customOffset = null) {
+    currentIndex = index;
+    const station = stationData[index];
     
-    let startSeconds = customOffset !== null ? customOffset : getVirtualStationTime(channelIndex, catalogIdx);
+    let startSeconds = customOffset !== null ? customOffset : getVirtualStationTime(index);
     playbackSeconds = startSeconds; 
     
     let cleanUrl = `${station.embed}&start=${startSeconds}`;
     iframe.src = cleanUrl;
     
-    display.innerText = station.name;
+    display.innerText = (index + 1) + ". " + station.name;
     nowPlayingLabel.innerText = "Now Playing: " + station.name;
     
     let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
-    userHistory[channelIndex] = { catalogIdx: catalogIdx, time: startSeconds, updated: Date.now() };
+    userHistory[index] = { time: startSeconds, updated: Date.now() };
     localStorage.setItem('dap_247_user_history', JSON.stringify(userHistory));
-    localStorage.setItem('dap_247_last_channel', channelIndex);
+    localStorage.setItem('dap_247_last_channel', index);
     localStorage.setItem('dap_247_last_active', Date.now());
     
-    titleOverlay.innerText = station.name;
+    titleOverlay.innerText = (index + 1) + ". " + station.name;
     titleOverlay.style.opacity = 1;
     setTimeout(() => { titleOverlay.style.opacity = 0; }, 2000);
 
@@ -367,28 +320,21 @@
     
     subtitleTimer = setInterval(() => {
       playbackSeconds++;
-      let currentActiveCatalog = getAssignedCatalogIndex(currentIndex);
-      if (currentActiveCatalog !== catalogIdx) {
-        playStation(currentIndex);
-        return;
-      }
       updateSubtitles(playbackSeconds);
     }, 1000);
   }
 
   function nav(direction) {
-    let nextIdx = (currentIndex + direction + TOTAL_CHANNELS) % TOTAL_CHANNELS;
+    let nextIdx = (currentIndex + direction + stationData.length) % stationData.length;
     let userHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
     let stationHistory = userHistory[nextIdx];
     let now = Date.now();
     
     let targetTime = null;
-    let catalogIdx = getAssignedCatalogIndex(nextIdx);
-    
-    if (stationHistory && stationHistory.catalogIdx === catalogIdx && (now - stationHistory.updated < 60 * 60 * 1000)) {
+    if (stationHistory && (now - stationHistory.updated < 60 * 60 * 1000)) {
       targetTime = stationHistory.time;
     } else {
-      targetTime = getVirtualStationTime(nextIdx, catalogIdx);
+      targetTime = getVirtualStationTime(nextIdx);
     }
     
     playStation(nextIdx, targetTime);
@@ -462,9 +408,8 @@
     let fullUserHistory = JSON.parse(localStorage.getItem('dap_247_user_history')) || {};
     initialTime = fullUserHistory[initialIndex] ? fullUserHistory[initialIndex].time : null;
   } else {
-    initialIndex = Math.floor(Math.random() * TOTAL_CHANNELS);
-    let catalogIdx = getAssignedCatalogIndex(initialIndex);
-    initialTime = getVirtualStationTime(initialIndex, catalogIdx);
+    initialIndex = Math.floor(Math.random() * stationData.length);
+    initialTime = getVirtualStationTime(initialIndex);
   }
 
   applyCCUIState();
