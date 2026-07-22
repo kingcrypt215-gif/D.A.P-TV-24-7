@@ -47,7 +47,7 @@
       pointer-events: none;
     }
 
-    /* Fast transient behavior: relies ONLY on JS timer now, not mouse hover */
+    /* Fast transient behavior: relies on JS timer to fade nicely */
     .video-container.active-user #archive-controls-bar { opacity: 1; pointer-events: auto; }
 
     /* Track Seeker (Scrubber) */
@@ -66,7 +66,7 @@
     .netflix-row { display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 8px; }
     .netflix-group { display: flex; align-items: center; gap: 16px; }
 
-    /* Modern Text/Icon Buttons without rigid boxes */
+    /* Modern Text/Icon Overlay Buttons */
     .net-btn {
       background: transparent; border: none; color: #fff; cursor: pointer; font-size: 15px;
       font-weight: bold; padding: 5px; display: flex; align-items: center; justify-content: center;
@@ -85,6 +85,17 @@
     }
 
     .time-display { font-size: 13px; color: #fff; font-family: monospace; text-shadow: 1px 1px 2px #000; margin-left: 10px; }
+
+    /* Dedicated Permanent Bottom Navigation Bar */
+    .nav-box { display: flex; justify-content: space-between; gap: 10px; padding: 10px; }
+    .nav-btn {
+      background: #FFD700; color: #000; border: none; padding: 12px 10px;
+      cursor: pointer; font-weight: bold; flex: 1; border-radius: 4px;
+      font-size: clamp(12px, 2.5vw, 15px); text-align: center;
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+    .nav-btn:hover { background: #e6c200; }
+    .nav-btn:active { transform: scale(0.98); }
 
     /* Invisible Shield Overlay */
     #click-shield {
@@ -199,7 +210,7 @@
     <video id="archive-player" playsinline></video>
   </div>
 
-  <!-- Single Unified Transient Player Controls Bar -->
+  <!-- Single Unified Transient Overlay Controls Bar -->
   <div id="archive-controls-bar">
     <div class="seek-container" id="seek-bar-wrapper">
       <input type="range" id="video-seekbar" value="0" min="0" max="100" step="0.1">
@@ -221,6 +232,13 @@
       </div>
     </div>
   </div>
+</div>
+
+<!-- Permanent Outer Control Bar with PREVIOUS, FULLSCREEN, and NEXT -->
+<div class="nav-box">
+  <button class="nav-btn" onclick="nav(-1)">PREVIOUS</button>
+  <button class="nav-btn" onclick="toggleFullScreen()">FULLSCREEN</button>
+  <button class="nav-btn" onclick="nav(1)">NEXT</button>
 </div>
 
 <div id="now-playing-section">
@@ -572,7 +590,7 @@
   }
 
   document.addEventListener('keydown', (e) => {
-    triggerActivity(); // Trigger the menu to popup when any remote/keyboard button is hit
+    triggerActivity(); // Trigger transient menu to pop up on remote/keyboard input
     if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); nav(-1); }
     if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); nav(1); }
   });
