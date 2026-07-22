@@ -315,6 +315,7 @@
     ]
   };
 
+  // Restored All 26 Unique Channels (Including Pioneer One Eps 1-6)
   const stationData = [
     { name: "Strive", type: "dailymotion", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Ink", type: "dailymotion", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -345,12 +346,12 @@
   ];
 
   let currentIndex = 0;
-  const GLOBAL_EPOCH_KEY = 'dap_247_global_broadcast_epoch_v17_netflix';
+  const GLOBAL_EPOCH_KEY = 'dap_247_global_broadcast_epoch_v20_restored';
   const TOTAL_CHANNELS = stationData.length;
 
-  if (!localStorage.getItem('dap_catalog_split_v17')) {
+  if (!localStorage.getItem('dap_catalog_split_v20')) {
     localStorage.removeItem(GLOBAL_EPOCH_KEY);
-    localStorage.setItem('dap_catalog_split_v17', 'true');
+    localStorage.setItem('dap_catalog_split_v20', 'true');
   }
 
   function getLiveVirtualTimeline(channelIndex) {
@@ -516,10 +517,11 @@
 
   function playStation(channelIndex) {
     currentIndex = channelIndex;
-    let liveState = getLiveVirtualTimeline(channelIndex);
-    currentActiveCatalogIdx = liveState.catalogIdx;
     
+    currentActiveCatalogIdx = channelIndex % TOTAL_CHANNELS;
     const station = stationData[currentActiveCatalogIdx];
+    
+    let liveState = getLiveVirtualTimeline(channelIndex);
     playbackSeconds = liveState.offset;
     hideUnmutePrompt();
     
@@ -558,10 +560,10 @@
     
     display.innerText = station.name;
     nowPlayingLabel.innerText = "Now Playing: " + station.name;
+    titleOverlay.innerText = station.name;
     
     localStorage.setItem('dap_247_last_channel', channelIndex);
     
-    titleOverlay.innerText = station.name;
     titleOverlay.style.opacity = 1;
     setTimeout(() => { titleOverlay.style.opacity = 0; }, 2000);
 
@@ -577,12 +579,6 @@
         timeIndicator.innerText = formatTime(archiveVideo.currentTime) + " / " + formatTime(station.duration);
       } else {
         timeIndicator.innerText = formatTime(playbackSeconds) + " / " + formatTime(station.duration);
-      }
-      
-      let checkState = getLiveVirtualTimeline(currentIndex);
-      if (checkState.catalogIdx !== currentActiveCatalogIdx) {
-        playStation(currentIndex);
-        return;
       }
       
       updateSubtitles(playbackSeconds);
