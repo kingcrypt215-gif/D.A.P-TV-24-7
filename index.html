@@ -27,9 +27,9 @@
         font-size: clamp(14px, 5vw, 28px);
     }
     
-    /* Subtitle Display Overlay (Clean gold text with no background box) */
+    /* Subtitle Display Overlay */
     #subtitle-overlay {
-      position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%);
+      position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%);
       z-index: 2147483646; color: #FFD700; background: transparent;
       padding: 0; font-size: clamp(14px, 3vw, 22px); font-weight: bold;
       text-align: center; max-width: 90%; display: none;
@@ -38,13 +38,58 @@
     }
     .video-container.cc-active #subtitle-overlay { display: block; }
     
-    /* Transient Fullscreen Navigation & Controls Overlay */
+    /* Netflix-Style Custom Player Control Overlay for Archive.org */
+    #archive-controls-bar {
+      position: absolute; bottom: 0; left: 0; width: 100%; z-index: 2147483647;
+      background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 60%, transparent 100%);
+      padding: 15px 20px 10px 20px; box-sizing: border-box; display: none;
+      flex-direction: column; gap: 8px; opacity: 0; transition: opacity 0.3s ease-in-out;
+    }
+    .video-container.archive-active.active-user #archive-controls-bar { opacity: 1; }
+    .video-container.archive-active #archive-player { pointer-events: auto; }
+
+    /* Track Seeker (Scrubber) */
+    .seek-container { width: 100%; display: flex; align-items: center; position: relative; }
+    #video-seekbar {
+      -webkit-appearance: none; width: 100%; height: 5px; background: rgba(255,255,255,0.3);
+      border-radius: 3px; outline: none; cursor: pointer; transition: height 0.1s;
+    }
+    #video-seekbar:hover { height: 8px; }
+    #video-seekbar::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px; background: #FFD700;
+      border-radius: 50%; cursor: pointer; box-shadow: 0 0 4px #000;
+    }
+
+    /* Netflix Controls Row Elements */
+    .netflix-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+    .netflix-group { display: flex; align-items: center; gap: 15px; }
+
+    .net-btn {
+      background: none; border: none; color: #FFD700; cursor: pointer; font-size: 18px;
+      font-weight: bold; padding: 4px; display: flex; align-items: center; justify-content: center;
+      transition: color 0.2s, transform 0.1s; text-shadow: 1px 1px 3px #000;
+    }
+    .net-btn:hover { color: #fff; transform: scale(1.1); }
+
+    /* Volume Slider Popup */
+    .volume-wrapper { display: flex; align-items: center; gap: 8px; position: relative; }
+    #volume-slider {
+      -webkit-appearance: none; width: 70px; height: 4px; background: rgba(255,255,255,0.4);
+      border-radius: 2px; outline: none; cursor: pointer;
+    }
+    #volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 10px; height: 10px; background: #FFD700; border-radius: 50%; cursor: pointer;
+    }
+
+    .time-display { font-size: 12px; color: #ddd; font-weight: bold; font-family: monospace; }
+
+    /* Transient Fullscreen Navigation & Controls Overlay for Dailymotion */
     .fs-nav { 
         position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); 
         z-index: 2147483647; display: flex; gap: 10px; align-items: center;
         opacity: 0; visibility: hidden; transition: opacity 0.4s ease-in-out, visibility 0.4s ease-in-out; 
     }
-    .video-container.active-user .fs-nav { opacity: 1; visibility: visible; }
+    .video-container.dailymotion-active.active-user .fs-nav { opacity: 1; visibility: visible; }
     
     .fs-btn { background: #FFD700 !important; color: #000 !important; border: none; padding: 8px 14px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: clamp(10px, 1.8vw, 14px); box-shadow: 0 2px 8px rgba(0,0,0,0.8); }
     .fs-btn:hover { background: #fff !important; }
@@ -57,7 +102,7 @@
     .ctrl-action-btn { background: #333; color: #FFD700; border: 1px solid #FFD700; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 14px; }
     .ctrl-action-btn:hover { background: #FFD700; color: #000; }
 
-    /* Invisible Shield Overlay to completely intercept clicks and prevent Dailymotion overlays from triggering */
+    /* Invisible Shield Overlay */
     #click-shield {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       z-index: 2147483645; background: transparent; display: none;
@@ -75,7 +120,7 @@
       display: block; z-index: 1;
     }
 
-    /* Now Playing Ticker Section with Marquee Scrolling */
+    /* Now Playing Ticker Section */
     #now-playing-section {
       background: #111;
       border-top: 2px solid #FFD700;
@@ -156,7 +201,7 @@
   <div id="subtitle-overlay"></div>
   <div id="click-shield"></div>
   
-  <!-- Transient Fullscreen Navigation, CC & Exit Box -->
+  <!-- Dailymotion Fullscreen Navigation -->
   <div class="fs-nav">
       <button class="fs-btn" onclick="nav(-1)">PREV</button>
       <button class="fs-btn" id="fs-cc-toggle-btn" onclick="toggleCC()">CC: ON</button>
@@ -166,7 +211,30 @@
 
   <div id="player-container" style="width:100%; height:100%; position:relative;">
     <iframe id="dm-player" frameborder="0" width="100%" height="100%" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%;"></iframe>
-    <video id="archive-player" playsinline autoplay muted></video>
+    <video id="archive-player" playsinline></video>
+  </div>
+
+  <!-- Netflix-Style Custom Player Control Bar for Archive.org -->
+  <div id="archive-controls-bar">
+    <div class="seek-container">
+      <input type="range" id="video-seekbar" value="0" min="0" max="100" step="0.1">
+    </div>
+    <div class="netflix-row">
+      <div class="netflix-group">
+        <button class="net-btn" id="net-playpause-btn" onclick="toggleArchivePlayPause()" title="Play/Pause">❚❚</button>
+        <button class="net-btn" onclick="nav(-1)" title="Previous Channel">⏮</button>
+        <button class="net-btn" onclick="nav(1)" title="Next Channel">⏭</button>
+        <div class="volume-wrapper">
+          <button class="net-btn" id="net-mute-btn" onclick="toggleArchiveMute()" title="Mute/Unmute">🔊</button>
+          <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" oninput="adjustVolume(this.value)">
+        </div>
+        <span class="time-display" id="time-indicator">0:00 / 0:00</span>
+      </div>
+      <div class="netflix-group">
+        <button class="net-btn" id="net-cc-btn" onclick="toggleCC()" title="Closed Captions">CC</button>
+        <button class="net-btn" onclick="toggleFullScreen()" title="Fullscreen">⛶</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -203,7 +271,12 @@
   const mainCcBtn = document.getElementById('main-cc-toggle-btn');
   const fsCcBtn = document.getElementById('fs-cc-toggle-btn');
   
-  // Complete Subtitles Database mapped directly to Nasty Old People's Video ID
+  const playPauseBtn = document.getElementById('net-playpause-btn');
+  const muteBtn = document.getElementById('net-mute-btn');
+  const volumeSlider = document.getElementById('volume-slider');
+  const videoSeekbar = document.getElementById('video-seekbar');
+  const timeIndicator = document.getElementById('time-indicator');
+  
   const subtitlesData = {
     "k2onvpqu5aRLmUHWMR4": [
       { start: 11, end: 20, text: "Danish translation by Michael Wahlstrøm" },
@@ -247,7 +320,6 @@
     ]
   };
 
-  // Master Network Catalog: Updated with your original titles plus the new Archive.org & Dailymotion streams
   const stationData = [
     { name: "Strive", type: "dailymotion", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Ink", type: "dailymotion", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -273,15 +345,14 @@
   ];
 
   let currentIndex = 0;
-  const GLOBAL_EPOCH_KEY = 'dap_247_global_broadcast_epoch_v15_split';
+  const GLOBAL_EPOCH_KEY = 'dap_247_global_broadcast_epoch_v16_netflix';
   const TOTAL_CHANNELS = stationData.length;
 
-  if (!localStorage.getItem('dap_catalog_split_v15')) {
+  if (!localStorage.getItem('dap_catalog_split_v16')) {
     localStorage.removeItem(GLOBAL_EPOCH_KEY);
-    localStorage.setItem('dap_catalog_split_v15', 'true');
+    localStorage.setItem('dap_catalog_split_v16', 'true');
   }
 
-  // Continuous 24/7 Global Timeline Engine
   function getLiveVirtualTimeline(channelIndex) {
     let masterEpochs = JSON.parse(localStorage.getItem(GLOBAL_EPOCH_KEY)) || {};
     let now = Math.floor(Date.now() / 1000);
@@ -367,6 +438,52 @@
     }
   }
 
+  // Multifunctional Archive Play/Pause Control
+  function toggleArchivePlayPause() {
+    if (archiveVideo.paused) {
+      archiveVideo.play();
+      playPauseBtn.innerText = "❚❚";
+    } else {
+      archiveVideo.pause();
+      playPauseBtn.innerText = "▶";
+    }
+  }
+
+  // Multifunctional Archive Mute/Unmute Control
+  function toggleArchiveMute() {
+    if (archiveVideo.muted || archiveVideo.volume === 0) {
+      archiveVideo.muted = false;
+      if (archiveVideo.volume === 0) {
+        archiveVideo.volume = 1;
+        volumeSlider.value = 1;
+      }
+      muteBtn.innerText = "🔊";
+    } else {
+      archiveVideo.muted = true;
+      muteBtn.innerText = "🔇";
+    }
+  }
+
+  function adjustVolume(val) {
+    archiveVideo.volume = val;
+    archiveVideo.muted = (val == 0);
+    muteBtn.innerText = (val == 0) ? "🔇" : "🔊";
+  }
+
+  function formatTime(secs) {
+    let m = Math.floor(secs / 60);
+    let s = Math.floor(secs % 60);
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  // Scrubber user interaction
+  videoSeekbar.addEventListener('input', () => {
+    const station = stationData[currentActiveCatalogIdx];
+    let newTime = (videoSeekbar.value / 100) * station.duration;
+    archiveVideo.currentTime = newTime;
+    playbackSeconds = Math.floor(newTime);
+  });
+
   function playStation(channelIndex) {
     currentIndex = channelIndex;
     let liveState = getLiveVirtualTimeline(channelIndex);
@@ -375,18 +492,35 @@
     const station = stationData[currentActiveCatalogIdx];
     playbackSeconds = liveState.offset;
     
-    // Split Player Logic: Dailymotion iframe vs Archive.org custom HTML5 video element
     if (station.type === 'archive') {
       iframe.style.display = 'none';
       iframe.src = '';
+      wrapper.classList.remove('dailymotion-active');
+      wrapper.classList.add('archive-active');
+      
       archiveVideo.style.display = 'block';
       archiveVideo.src = station.embed;
       archiveVideo.currentTime = playbackSeconds;
-      archiveVideo.play().catch(() => {});
+      archiveVideo.muted = false; // Ensure unmuted by default
+      archiveVideo.volume = volumeSlider.value;
+      muteBtn.innerText = (archiveVideo.volume == 0) ? "🔇" : "🔊";
+      
+      archiveVideo.play().then(() => {
+        playPauseBtn.innerText = "❚❚";
+      }).catch(() => {
+        // Fallback for strict browser autoplay policies
+        archiveVideo.muted = true;
+        muteBtn.innerText = "🔇";
+        archiveVideo.play();
+        playPauseBtn.innerText = "❚❚";
+      });
     } else {
       archiveVideo.style.display = 'none';
       archiveVideo.pause();
       archiveVideo.src = '';
+      wrapper.classList.remove('archive-active');
+      wrapper.classList.add('dailymotion-active');
+      
       iframe.style.display = 'block';
       let cleanUrl = `${station.embed}&start=${playbackSeconds}`;
       iframe.src = cleanUrl;
@@ -406,6 +540,12 @@
     
     subtitleTimer = setInterval(() => {
       playbackSeconds++;
+      
+      if (station.type === 'archive' && !archiveVideo.paused) {
+        let percent = (archiveVideo.currentTime / station.duration) * 100;
+        videoSeekbar.value = percent || 0;
+        timeIndicator.innerText = formatTime(archiveVideo.currentTime) + " / " + formatTime(station.duration);
+      }
       
       let checkState = getLiveVirtualTimeline(currentIndex);
       if (checkState.catalogIdx !== currentActiveCatalogIdx) {
@@ -458,13 +598,11 @@
 
   let fadeTimer = null;
   function triggerActivity() {
-    if (document.fullscreenElement || document.webkitFullscreenElement) {
-      wrapper.classList.add('active-user');
-      clearTimeout(fadeTimer);
-      fadeTimer = setTimeout(() => {
-        wrapper.classList.remove('active-user');
-      }, 3000);
-    }
+    wrapper.classList.add('active-user');
+    clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(() => {
+      wrapper.classList.remove('active-user');
+    }, 3500);
   }
 
   wrapper.addEventListener('mousemove', triggerActivity);
