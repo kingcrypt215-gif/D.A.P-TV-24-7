@@ -230,12 +230,12 @@
       { start: 333, end: 337, text: "Mr. W has been writing a book for twenty years" },
       { start: 339, end: 343, text: "When he got to the last page, ...he got cancer" },
       { start: 348, end: 351, text: "Therefore, he is very bitter" },
-      { start: 360, end: 363, text: "At those who can live" },
+      { start: 360, end: 363, text: "At those total days can live" },
       { start: 366, end: 371, text: "But most of all... because he needs home care even though he is only 49 years old" }
     ]
   };
 
-  // Master Network Catalog: Original locked structure with Episodes 3, 4, 5, and 6 of Pioneer One added cleanly
+  // Master Network Catalog: All 13 titles fully loaded with a fresh cache key override to force full channel availability
   const stationData = [
     { name: "Strive", id: "k4ObpDYw3BipbbHWEW2", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k4ObpDYw3BipbbHWEW2?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
     { name: "Ink", id: "k1OjGBaUwtLuvrHWG9U", duration: 5400, embed: "https://www.dailymotion.com/embed/video/k1OjGBaUwtLuvrHWG9U?autoplay=1&mute=1&controls=0&queue-enable=0&sharing-enable=0&related-video=0" },
@@ -253,8 +253,14 @@
   ];
 
   let currentIndex = 0;
-  const GLOBAL_EPOCH_KEY = 'dap_247_global_broadcast_epoch_v9';
-  const TOTAL_CHANNELS = stationData.length;
+  const GLOBAL_EPOCH_KEY = 'dap_247_global_broadcast_epoch_v13_fix';
+  const TOTAL_CHANNELS = stationData.length; // Exactly 13 channels now
+
+  // Force clean clearing of old saved local storage blocks so browser recognizes the full expanded channel list immediately
+  if (!localStorage.getItem('dap_catalog_fix_v13')) {
+    localStorage.removeItem(GLOBAL_EPOCH_KEY);
+    localStorage.setItem('dap_catalog_fix_v13', 'true');
+  }
 
   // Continuous 24/7 Global Timeline Engine: Keeps a permanent, un-interruptible master clock running forward like live TV.
   function getLiveVirtualTimeline(channelIndex) {
@@ -271,6 +277,10 @@
     }
 
     let channelProg = masterEpochs[channelIndex];
+    if (channelProg.catalogIdx >= stationData.length) {
+      channelProg.catalogIdx = 0;
+    }
+
     let currentStation = stationData[channelProg.catalogIdx];
     let elapsedTotal = now - channelProg.startTime;
 
