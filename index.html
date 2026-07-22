@@ -38,16 +38,16 @@
     }
     .video-container.cc-active #subtitle-overlay { display: block; }
     
-    /* Netflix-Style Custom Player Control Overlay (Transient Fader) */
+    /* Netflix-Style Custom Player Control Overlay (Fast Transient Fader) */
     #archive-controls-bar {
       position: absolute; bottom: 0; left: 0; width: 100%; z-index: 2147483647;
       background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 70%, transparent 100%);
       padding: 20px 20px 12px 20px; box-sizing: border-box; display: flex;
-      flex-direction: column; gap: 10px; opacity: 0; transition: opacity 0.3s ease-in-out;
+      flex-direction: column; gap: 10px; opacity: 0; transition: opacity 0.25s ease-in-out;
       pointer-events: none; backdrop-filter: blur(2px);
     }
 
-    /* Transient behavior: controls show when user is active or in window mode hovered */
+    /* Fast transient behavior: controls display when active, fade quickly on idle */
     .video-container.active-user #archive-controls-bar,
     .video-container:hover #archive-controls-bar { opacity: 1; pointer-events: auto; }
 
@@ -89,11 +89,6 @@
 
     .nav-box { display: flex; justify-content: space-between; padding: 10px; }
     .nav-btn { background: #FFD700; color: #000; border: none; padding: 12px 24px; cursor: pointer; font-weight: bold; width: 48%; border-radius: 4px; }
-    
-    /* Custom Control Toggles Panel */
-    .controls-panel { display: flex; justify-content: center; gap: 10px; margin: 5px auto; }
-    .ctrl-action-btn { background: #333; color: #FFD700; border: 1px solid #FFD700; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 14px; }
-    .ctrl-action-btn:hover { background: #FFD700; color: #000; }
 
     /* Invisible Shield Overlay */
     #click-shield {
@@ -111,7 +106,7 @@
       display: none; cursor: pointer; box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
     }
 
-    /* Custom HTML5 Video Player Styles for Archive.org streams */
+    /* Custom Video Player Engines */
     #archive-player {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background: #000; object-fit: contain; display: none; z-index: 2;
@@ -208,7 +203,7 @@
     <video id="archive-player" playsinline></video>
   </div>
 
-  <!-- Netflix-Style Transient Custom Player Controls Overlay -->
+  <!-- Single Unified Transient Player Controls Bar -->
   <div id="archive-controls-bar">
     <div class="seek-container" id="seek-bar-wrapper">
       <input type="range" id="video-seekbar" value="0" min="0" max="100" step="0.1">
@@ -225,16 +220,11 @@
         <span class="time-display" id="time-indicator">0:00 / 0:00</span>
       </div>
       <div class="netflix-group">
-        <button class="net-btn" id="net-cc-btn" onclick="toggleCC()" title="Closed Captions">CC</button>
-        <button class="net-btn" id="net-fs-exit-btn" onclick="toggleFullScreen()" title="Toggle Fullscreen">⛶ EXIT</button>
+        <button class="net-btn" id="net-cc-btn" onclick="toggleCC()" title="Closed Captions">CC: ON</button>
+        <button class="net-btn" id="net-fs-exit-btn" onclick="toggleFullScreen()" title="Toggle Fullscreen">FULLSCREEN</button>
       </div>
     </div>
   </div>
-</div>
-
-<div class="controls-panel">
-  <button id="fs-toggle-btn" class="ctrl-action-btn" onclick="toggleFullScreen()">FULLSCREEN</button>
-  <button id="main-cc-toggle-btn" class="ctrl-action-btn" onclick="toggleCC()">CC: ON</button>
 </div>
 
 <div class="nav-box">
@@ -262,7 +252,6 @@
   const iframe = document.getElementById('dm-player');
   const archiveVideo = document.getElementById('archive-player');
   const wrapper = document.getElementById('player-wrapper');
-  const mainCcBtn = document.getElementById('main-cc-toggle-btn');
   
   const playPauseBtn = document.getElementById('net-playpause-btn');
   const muteBtn = document.getElementById('net-mute-btn');
@@ -271,6 +260,8 @@
   const seekbarWrapper = document.getElementById('seek-bar-wrapper');
   const timeIndicator = document.getElementById('time-indicator');
   const unmutePrompt = document.getElementById('unmute-prompt-overlay');
+  const netCcBtn = document.getElementById('net-cc-btn');
+  const fsExitBtn = document.getElementById('net-fs-exit-btn');
   
   const subtitlesData = {
     "k2onvpqu5aRLmUHWMR4": [
@@ -384,7 +375,7 @@
 
   function applyCCUIState() {
     let btnText = ccEnabled ? "CC: ON" : "CC: OFF";
-    mainCcBtn.innerText = btnText;
+    netCcBtn.innerText = btnText;
     
     if (ccEnabled) {
       wrapper.classList.add('cc-active');
@@ -432,7 +423,7 @@
     }
   }
 
-  // Multifunctional Play/Pause Control
+  // Play/Pause Control
   function toggleArchivePlayPause() {
     const station = stationData[currentActiveCatalogIdx];
     if (station.type === 'archive') {
@@ -444,7 +435,6 @@
         playPauseBtn.innerText = "▶";
       }
     } else {
-      // Toggle button visual state for embeds
       if (playPauseBtn.innerText === "❚❚") {
         playPauseBtn.innerText = "▶";
       } else {
@@ -453,7 +443,7 @@
     }
   }
 
-  // Multifunctional Mute/Unmute Control
+  // Mute/Unmute Control
   function toggleArchiveMute() {
     const station = stationData[currentActiveCatalogIdx];
     if (station.type === 'archive') {
@@ -469,11 +459,10 @@
         muteBtn.innerText = "🔇";
       }
     } else {
-      // For Dailymotion external iframe player restrictions, present prompt guide
       if (muteBtn.innerText === "🔇") {
         muteBtn.innerText = "🔊";
         unmutePrompt.style.display = 'block';
-        setTimeout(hideUnmutePrompt, 4000);
+        setTimeout(hideUnmutePrompt, 3000);
       } else {
         muteBtn.innerText = "🔇";
         unmutePrompt.style.display = 'none';
@@ -500,7 +489,7 @@
     return m + ":" + (s < 10 ? "0" : "") + s;
   }
 
-  // Scrubber user interaction
+  // Scrubber interaction
   videoSeekbar.addEventListener('input', () => {
     const station = stationData[currentActiveCatalogIdx];
     if (station.type === 'archive') {
@@ -612,28 +601,28 @@
   }
 
   function checkFullscreen() {
-    const fsExitBtn = document.getElementById('net-fs-exit-btn');
     if (document.fullscreenElement || document.webkitFullscreenElement) {
         wrapper.classList.add('fullscreen-mode');
-        if (fsExitBtn) fsExitBtn.innerText = "⛶ EXIT";
+        fsExitBtn.innerText = "⛶ EXIT";
         triggerActivity();
     } else {
         wrapper.classList.remove('fullscreen-mode');
         wrapper.classList.remove('active-user');
-        if (fsExitBtn) fsExitBtn.innerText = "⛶ FULL";
+        fsExitBtn.innerText = "FULLSCREEN";
     }
   }
 
   document.addEventListener('fullscreenchange', checkFullscreen);
   document.addEventListener('webkitfullscreenchange', checkFullscreen);
 
+  // Fast transient timer (1.5s fade out delay)
   let fadeTimer = null;
   function triggerActivity() {
     wrapper.classList.add('active-user');
     clearTimeout(fadeTimer);
     fadeTimer = setTimeout(() => {
       wrapper.classList.remove('active-user');
-    }, 3500);
+    }, 1500);
   }
 
   wrapper.addEventListener('mousemove', triggerActivity);
